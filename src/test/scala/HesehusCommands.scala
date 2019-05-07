@@ -25,12 +25,12 @@ object HesehusSpecification extends Commands {
     *  }
     *  }}}
     */
-  override def canCreateNewSut(newState: State, initSuts: Traversable[State], runningSuts: Traversable[HesehusApi]): Boolean = {
+  override def canCreateNewSut(newState: State, initSuts: Traversable[State], runningSuts: Traversable[Sut]): Boolean = {
     true
   }
 
   /** The precondition for the initial state, when no commands yet have run. This is used by ScalaCheck when command
-    * sequences are shrinked and the first state might differ from what is returned from [[genInitialState]].
+    * sequences are shrunk and the first state might differ from what is returned from [[genInitialState]].
     **/
   override def initialPreCondition(state: State): Boolean = {
     state.isEmpty
