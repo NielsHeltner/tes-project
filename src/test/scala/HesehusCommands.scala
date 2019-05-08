@@ -1,6 +1,9 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
+import play.api.libs.json.{JsArray, JsObject, Json}
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.util.{Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
@@ -53,28 +56,50 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    new Model
+    Gen.const(new Model)
+  }
+
+  def genPutAlias(state: State): Gen[PutAlias] = {
+    Gen.someOf(state.indices).map(PutAlias)
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = Gen.oneOf(
-    GetAmount, GetAmount
+    Gen.const(GetAlias),
+    genPutAlias(state)
   )
 
-  case object GetAmount extends Command {
+  case object GetAlias extends Command {
 
-    override type Result = String
+    override type Result = JsArray
 
-    override def run(sut: Sut): Result = sut.getAmount
+    override def run(sut: Sut): Result = sut.getAlias
 
     override def nextState(state: State): State = state
 
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      result == Success(state.getAmount)
+      val ids = result.get.value.map(_.as[JsObject]).map(_.value("id").as[String])
+      state.alias.indices.count { i => ids(i) != state.alias(i) } == 0
     }
+
+  }
+
+  case class PutAlias(indices: Seq[String]) extends UnitCommand {
+
+    override def run(sut: Sut): Unit = {
+      sut.putAlias(indices)
+    }
+
+    override def nextState(state: State): State = {
+      state.clone(alias = indices)
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, success: Boolean): Prop = success
 
   }
 
