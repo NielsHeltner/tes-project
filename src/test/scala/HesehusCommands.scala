@@ -1,13 +1,11 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 
-import scala.collection.SortedSet
 import scala.util.{Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
 //https://github.com/rickynils/scalacheck/tree/master/examples/commands-nix
 object HesehusSpecification extends Commands {
-
 
   var testNumber = 1
 
@@ -46,7 +44,8 @@ object HesehusSpecification extends Commands {
     */
   override def newSut(state: State): Sut = {
     //println("New Sut")
-    println("Test run #" + testNumber)
+    println("Test run #" + testNumber + " of 100") //TODO: Hvis muligt, hent antal fra props i stedet for hardcoded.
+
     testNumber = testNumber + 1
     new HesehusApi
   }
@@ -106,7 +105,7 @@ object HesehusSpecification extends Commands {
   }
 
   case object GetIndices extends Command {
-    override type Result = Array[String]
+    override type Result = List[String]
 
     override def run(sut: Sut): Result = {
       //println("GetIndices")
@@ -130,10 +129,11 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       //println("postCondition GetIndices")
 
-      /*println("State: " + (SortedSet[String]() ++ state.getIndices.toSet))
-      println("Sut: " + (SortedSet[String]() ++ result.get.toSet))
-      println("Dunno: " + (SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet))*/
-      (SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet)
+      /*println("State: " + state.getIndices.sorted)
+      println("Sut: " + result.get.sorted)
+      println("Dunno: " + state.getIndices.sorted.equals(result.get.sorted))*/
+      //(SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet)
+      state.getIndices.sorted.equals(result.get.sorted)
     }
   }
 
