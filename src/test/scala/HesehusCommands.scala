@@ -1,11 +1,15 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 
+import scala.collection.SortedSet
 import scala.util.{Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
 //https://github.com/rickynils/scalacheck/tree/master/examples/commands-nix
 object HesehusSpecification extends Commands {
+
+
+  var testNumber = 1
 
   override type State = Model
 
@@ -41,38 +45,115 @@ object HesehusSpecification extends Commands {
     * [[canCreateNewSut]] is not true for the given state.
     */
   override def newSut(state: State): Sut = {
+    //println("New Sut")
+    println("Test run #" + testNumber)
+    testNumber = testNumber + 1
     new HesehusApi
   }
 
   /** Destroy the system represented by the given [[Sut]] instance, and release any resources related to it.
     */
-  override def destroySut(sut: Sut): Unit = ()
+  override def destroySut(sut: Sut): Unit = CleanUp.cleanUp
 
   /** A generator that should produce an initial [[State]] instance that is usable by [[newSut]] to create a new system
     * under test. The state returned by this generator is always checked with the [[initialPreCondition]] method before
     * it is used.
     */
   override def genInitialState: Gen[State] = {
+    //println("New model")
+
     new Model
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
-  override def genCommand(state: State): Gen[Command] = Gen.oneOf(
-    GetAmount, GetAmount
+  override def genCommand(state: State): Gen[Command] = Gen.frequency(
+    (1, CreateIndex()),
+    (10, GetIndices)
   )
+
+  case class CreateIndex() extends Command {
+
+    var response: (String, Boolean) = _
+
+    override type Result = Boolean
+
+    override def run(sut: Sut): Result = {
+      //println("CreateIndex")
+
+      response = sut.createIndex
+      //response._1
+      response._2
+    }
+
+    override def nextState(state: State): State = {
+      //println("nextState CreateIndex")
+      state//state.addIndex("test")
+    }
+
+    override def preCondition(state: State): Boolean = {
+      //println("preCondition CreateIndex")
+      true
+    }
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      //println("postCondition CreateIndex")
+      //print("Response: " + response._1)
+      state.addIndex(response._1)
+      //println("This should be true: " + state.containIndices)
+      result == Success(true)
+    }
+  }
+
+  case object GetIndices extends Command {
+    override type Result = Array[String]
+
+    override def run(sut: Sut): Result = {
+      //println("GetIndices")
+
+      //println(sut.getIndices)
+      sut.getIndices
+    }
+
+    override def nextState(state: State): State = {
+      //println("nextState GetIndices")
+
+      state
+    }
+
+    override def preCondition(state: State): Boolean = {
+      //println("preCondition GetIndices")
+
+      true//state.containIndices
+    }
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      //println("postCondition GetIndices")
+
+      /*println("State: " + (SortedSet[String]() ++ state.getIndices.toSet))
+      println("Sut: " + (SortedSet[String]() ++ result.get.toSet))
+      println("Dunno: " + (SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet))*/
+      (SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet)
+    }
+  }
 
   case object GetAmount extends Command {
 
     override type Result = String
 
-    override def run(sut: Sut): Result = sut.getAmount
+    override def run(sut: Sut): Result = {
+
+      sut.getAmount
+    }
 
     override def nextState(state: State): State = state
 
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
+
+      println("TEST")
+
       result == Success(state.getAmount)
     }
 
