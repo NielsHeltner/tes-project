@@ -1,7 +1,7 @@
 
 class Model {
 
-  var indices = Seq[String]()
+  var indices = List[String]()
 
   def isEmpty: Boolean = {
     true
@@ -15,7 +15,7 @@ class Model {
     indices.nonEmpty
   }
 
-  def getIndices: Seq[String] = {
+  def getIndices: List[String] = {
     indices
   }
 
