@@ -2,7 +2,9 @@ import scala.collection.mutable.ListBuffer
 
 class Model {
 
+
   var indices = ListBuffer[String]()
+
 
   def isEmpty: Boolean = {
     true

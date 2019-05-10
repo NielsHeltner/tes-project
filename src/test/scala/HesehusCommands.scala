@@ -67,10 +67,11 @@ object HesehusSpecification extends Commands {
     */
   override def genCommand(state: State): Gen[Command] = {
 
-    println(state.getIndices)
+    //println(state.getIndices)
     Gen.frequency(
       (10, CreateIndex()),
-      (10, GetIndices)
+      (10, GetIndices),
+      (10, RemoveIndex())
       //(5, genRemoveIndex(state))
     )
   }
@@ -81,7 +82,7 @@ object HesehusSpecification extends Commands {
   } //yield RemoveIndex(index)
 */
 
-  def genRemoveIndex(state: State): Gen[RemoveIndex] = {
+  /*def genRemoveIndex(state: State): Gen[RemoveIndex] = {
     println("genCommand state " + state)
     if(state.containIndices) {
       println("Contain")
@@ -90,12 +91,11 @@ object HesehusSpecification extends Commands {
       println("Not Contain")
       Gen.identifier.map(RemoveIndex)
     }
-  }
+  }*/
 
   case class CreateIndex() extends Command {
 
     var response: (String, Boolean) = _
-    var state: State = _
     val i = Random.nextInt(10000)
 
     override type Result = Boolean
@@ -103,18 +103,20 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = {
       println("CreateIndex " + i)
 
-      response = sut.createIndex
-      //state.addIndex(response._1)
-
       response._2
     }
 
     override def nextState(state: State): State = {
-      println("nextState CreateIndex " + i)
-        //state.addIndex("Test")
+      //println("nextState CreateIndex " + i)
+      //state.addIndex("Test")
+      //state.addIndex(response._1)
+      response = new HesehusApi().createIndex
+
+      //update state
       state.addIndex(response._1)
-      this.state = state
-      this.state
+      println("Run state " + state)
+
+      state
     }
 
     override def preCondition(state: State): Boolean = {
@@ -123,9 +125,11 @@ object HesehusSpecification extends Commands {
     }
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      println("postCondition CreateIndex " + i)
-      //print("Response: " + response._1)
+      //println("postCondition CreateIndex " + i)
+      // print("Response: " + response._1)
+      //this.state.addIndex(response._1)
       //println("This should be true: " + state.containIndices)
+      println("Postcon state " + state)
       result == Success(true)
     }
   }
@@ -142,6 +146,7 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = {
       //println("nextState GetIndices")
+      println("NextState: " + state.getIndices.sorted)
 
       state
     }
@@ -155,15 +160,18 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       //println("postCondition GetIndices")
 
-      /*println("State: " + state.getIndices.sorted)
+      println("State: " + state.getIndices.sorted)
       println("Sut: " + result.get.sorted)
-      println("Dunno: " + state.getIndices.sorted.equals(result.get.sorted))*/
+      println("Dunno: " + state.getIndices.sorted.equals(result.get.sorted))
       //(SortedSet[String]() ++ state.getIndices.toSet).sameElements(SortedSet[String]() ++ result.get.toSet)
       state.getIndices.sorted.equals(result.get.sorted)
     }
   }
 
-  case class RemoveIndex(index: String) extends Command {
+  case class RemoveIndex() extends Command {
+
+    var index: String = _
+
     override type Result = Boolean
 
     override def run(sut: Sut): Result = {
@@ -172,7 +180,11 @@ object HesehusSpecification extends Commands {
     }
 
     override def nextState(state: State): State = {
+      println("Remove State: " + state.getIndices.sorted)
+      //println("Sut: " + result.get.sorted)
 
+      index = if(state.containIndices) state.getIndex(Random.nextInt(state.indices.size)) else ""
+      println("Index to be removed: " + index)
       state.removeIndex(index)
     }
 

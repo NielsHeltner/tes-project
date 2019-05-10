@@ -8,7 +8,7 @@ object Request {
   val port: String = config.value("port").as[String]
 
   val apiKey: String = {
-    val request = Http("http://" + host + ":" + port + "/api/v1/Auth").param("apiKey", "t1").postData("")
+    val request = Http("http://" + host + ":" + port + "/api/v1/Auth").param("apiKey", "t2").postData("")
     val response = request.asString
     val json = Json.parse(response.body).as[JsObject]
     json.value("accessToken").as[String]

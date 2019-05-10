@@ -23,8 +23,7 @@ class HesehusApi {
   def removeIndex(index: String): Boolean = {
     val request = delete("/api/productsearch/v1/Index/" + index)
     val response = request.asString
-    println(index)
-    println(response.is2xx)
+    println("Remove Response code " + response.is2xx)
     response.is2xx
   }
 
