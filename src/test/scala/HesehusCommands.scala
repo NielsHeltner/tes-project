@@ -1,7 +1,8 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
+import play.api.libs.json.{JsArray, JsObject}
 
-import scala.util.{Success, Try}
+import scala.util.{Random, Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
 //https://github.com/rickynils/scalacheck/tree/master/examples/commands-nix
@@ -42,9 +43,9 @@ object HesehusSpecification extends Commands {
     */
   override def newSut(state: State): Sut = {
     //println("New Sut")
-    println("Test run #" + testNumber + " of 100") //TODO: Hvis muligt, hent antal fra props i stedet for hardcoded.
+    //println("Test run #" + testNumber + " of 100") //TODO: Hvis muligt, hent antal fra props i stedet for hardcoded.
 
-    testNumber = testNumber + 1
+    //testNumber = testNumber + 1
     new HesehusApi
   }
 
@@ -71,10 +72,10 @@ object HesehusSpecification extends Commands {
     //println(state.getIndices)
     Gen.frequency(
       (10, CreateIndex()),
-      (10, GetIndices),
-      (10, RemoveIndex()),
-      (10, Gen.const(GetAlias)),
-      (10, genPutAlias(state))
+      (10, GetIndices)
+      //(10, RemoveIndex()),
+      //(10, Gen.const(GetAlias)),
+      //(10, genPutAlias(state))
       //(5, genRemoveIndex(state))
     )
   }
@@ -116,10 +117,13 @@ object HesehusSpecification extends Commands {
       response = new HesehusApi().createIndex
 
       //update state
-      state.addIndex(response._1)
-      println("Run state " + state)
-
-      state
+      //state.addIndex()
+      //println("Run state " + state)
+      var seq: Seq[String] = state.indices :+ response._1
+      //val s = state.clone(indices = (state.indices + response._1))
+      var s = state.clone(indices = seq)
+      println("State " + seq)
+      s
     }
 
     override def preCondition(state: State): Boolean = {
@@ -132,7 +136,7 @@ object HesehusSpecification extends Commands {
       // print("Response: " + response._1)
       //this.state.addIndex(response._1)
       //println("This should be true: " + state.containIndices)
-      println("Postcon state " + state)
+      //println("Postcon state " + state)
       result == Success(true)
     }
   }
@@ -149,7 +153,7 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = {
       //println("nextState GetIndices")
-      println("NextState: " + state.getIndices.sorted)
+      //println("NextState: " + state.getIndices.sorted)
 
       state
     }

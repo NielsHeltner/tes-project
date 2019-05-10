@@ -3,7 +3,7 @@ import play.api.libs.json.{JsObject, Json}
 
 object CleanUp {
   def cleanUp {
-    println("Cleaning sut...")
+    println("\nCleaning sut...\n")
 
     cleanIndices
   }

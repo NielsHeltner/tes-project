@@ -1,7 +1,7 @@
 class Model {
 
   var alias: Seq[String] = Seq[String]()
-  var indices: Seq[String] = Seq[String]("product-index-t1-2019-05-07-17-54-47-7001334", "product-index-t1-2019-05-07-15-20-49-9740928")
+  var indices: Seq[String] = Seq[String]()
 
   def isEmpty: Boolean = {
     true
@@ -31,12 +31,12 @@ class Model {
   }
 
   def addIndex(index: String): Model = {
-    /*indices = */indices.append(index)
+    /*indices = indices.append(index)*/
     this
   }
 
   def removeIndex(index: String): Model = {
-    indices -= index
+    ///indices -= index
     this
   }
 

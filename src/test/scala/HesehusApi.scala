@@ -8,7 +8,6 @@ class HesehusApi {
     "do http get"
   }
 
-  def getAlias: JsArray = {
   def createIndex: (String, Boolean) =  {
     val request = post("/api/productsearch/v1/Index")
     val response = request.asString
@@ -29,7 +28,7 @@ class HesehusApi {
     response.is2xx
   }
 
-  def getAlias: Array[String] = {
+  def getAlias: JsArray = {
     val request = get("/api/productsearch/v1/Alias")
     val response = request.asString
     Json.parse(response.body).as[JsArray]
