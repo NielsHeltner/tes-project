@@ -20,6 +20,14 @@ class HesehusApi {
     Json.parse(response.body).as[List[JsObject]].map(obj => obj.value("id").as[String])
   }
 
+  def removeIndex(index: String): Boolean = {
+    val request = delete("/api/productsearch/v1/Index/" + index)
+    val response = request.asString
+    println(index)
+    println(response.is2xx)
+    response.is2xx
+  }
+
   def getAlias: Array[String] = {
     val request = get("/api/productsearch/v1/Alias")
     val response = request.asString
