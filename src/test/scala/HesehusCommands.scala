@@ -1,13 +1,11 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 
-import scala.util.{Random, Success, Try}
+import scala.util.{Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
 //https://github.com/rickynils/scalacheck/tree/master/examples/commands-nix
 object HesehusSpecification extends Commands {
-
-  var testNumber = 1
 
   override type State = Model
 
@@ -59,8 +57,11 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    //println("New model")
-    new Model
+    Gen.const(new Model)
+  }
+
+  def genPutAlias(state: State): Gen[PutAlias] = {
+    Gen.someOf(state.indices).map(PutAlias)
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
@@ -71,7 +72,9 @@ object HesehusSpecification extends Commands {
     Gen.frequency(
       (10, CreateIndex()),
       (10, GetIndices),
-      (10, RemoveIndex())
+      (10, RemoveIndex()),
+      (10, Gen.const(GetAlias)),
+      (10, genPutAlias(state))
       //(5, genRemoveIndex(state))
     )
   }
@@ -195,25 +198,36 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  case object GetAmount extends Command {
+  case object GetAlias extends Command {
 
-    override type Result = String
+    override type Result = JsArray
 
-    override def run(sut: Sut): Result = {
-
-      sut.getAmount
-    }
+    override def run(sut: Sut): Result = sut.getAlias
 
     override def nextState(state: State): State = state
 
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-
-      println("TEST")
-
-      result == Success(state.getAmount)
+      val ids = result.get.value.map(_.as[JsObject]).map(_.value("id").as[String])
+      state.alias.indices.count { i => ids(i) != state.alias(i) } == 0
     }
+
+  }
+
+  case class PutAlias(indices: Seq[String]) extends UnitCommand {
+
+    override def run(sut: Sut): Unit = {
+      sut.putAlias(indices)
+    }
+
+    override def nextState(state: State): State = {
+      state.clone(alias = indices)
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, success: Boolean): Prop = success
 
   }
 

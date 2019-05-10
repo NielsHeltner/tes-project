@@ -1,5 +1,6 @@
 import Request._
 import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 
 class HesehusApi {
 
@@ -7,6 +8,7 @@ class HesehusApi {
     "do http get"
   }
 
+  def getAlias: JsArray = {
   def createIndex: (String, Boolean) =  {
     val request = post("/api/productsearch/v1/Index")
     val response = request.asString
@@ -30,7 +32,15 @@ class HesehusApi {
   def getAlias: Array[String] = {
     val request = get("/api/productsearch/v1/Alias")
     val response = request.asString
-    Json.parse(response.body).as[Array[String]]
+    Json.parse(response.body).as[JsArray]
+  }
+
+  def putAlias(indices: Seq[String]): Unit = {
+    val indicesJson = Json.toJson(indices).as[JsArray]
+    val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
+    //println(s"${request.method} body: " + Json.stringify(indicesJson))
+    //request.postData(Json.stringify(indicesJson))
+    request.asString
   }
 
 }
