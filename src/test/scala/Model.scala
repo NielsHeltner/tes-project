@@ -1,7 +1,8 @@
+import scala.collection.mutable.ListBuffer
 
 class Model {
 
-  var indices = List[String]()
+  var indices = ListBuffer[String]()
 
   def isEmpty: Boolean = {
     true
@@ -15,12 +16,21 @@ class Model {
     indices.nonEmpty
   }
 
+  def getIndex(index: Int): String = {
+    indices(index)
+  }
+
   def getIndices: List[String] = {
-    indices
+    indices.toList
   }
 
   def addIndex(index: String): Model = {
-    indices = indices :+ index
+    /*indices = */indices.append(index)
+    this
+  }
+
+  def removeIndex(index: String): Model = {
+    indices -= index
     this
   }
 
