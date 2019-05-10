@@ -31,12 +31,17 @@ class Model {
   }
 
   def addIndex(index: String): Model = {
-    /*indices = indices.append(index)*/
+    indices = indices:+index
+    this
+  }
+
+  def setAlias(alias: Seq[String]): Model = {
+    this.alias = alias
     this
   }
 
   def removeIndex(index: String): Model = {
-    ///indices -= index
+    indices = indices.filterNot(item => item.equals(index))
     this
   }
 
