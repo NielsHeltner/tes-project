@@ -23,9 +23,7 @@ object HesehusSpecification extends Commands {
   /** The precondition for the initial state, when no commands yet have run. This is used by ScalaCheck when command
     * sequences are shrunk and the first state might differ from what is returned from [[genInitialState]].
     * */
-  override def initialPreCondition(state: State): Boolean = {
-    state.alias.isEmpty && state.indices.isEmpty
-  }
+  override def initialPreCondition(state: State): Boolean = true
 
   /** Create a new [[Sut]] instance with an internal state that
     * corresponds to the provided abstract state instance. The provided state
@@ -33,20 +31,22 @@ object HesehusSpecification extends Commands {
     * [[newSut]] will never be called if
     * [[canCreateNewSut]] is not true for the given state. */
   override def newSut(state: State): Sut = {
-    new HesehusApi
+    val api = new HesehusApi
+    api.putAlias(state.alias)
+    api
   }
 
   /** Destroy the system represented by the given [[Sut]] instance, and release any resources related to it.
     */
-  override def destroySut(sut: Sut): Unit = ()
+  override def destroySut(sut: Sut): Unit = ()//sut.reset()
 
   /** A generator that should produce an initial [[State]] instance that is usable by [[newSut]] to create a new system
     * under test. The state returned by this generator is always checked with the [[initialPreCondition]] method before
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    new HesehusApi().reset()
-    Gen.const(Model())
+    val index = Seq[String](new HesehusApi().createIndex._1)
+    Gen.const(Model(indices = index))
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
@@ -65,25 +65,26 @@ object HesehusSpecification extends Commands {
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
+    //println(state.hashCode())
     if (state.indices.isEmpty) {
       Gen.frequency(
-        (10, CreateIndex),
-        (10, GetIndices()),
-        (10, GetAlias())
+        (10, CreateIndex()),
+        (5, GetIndices()),
+        (5, GetAlias())
       )
     }
     else {
       Gen.frequency(
-        (10, CreateIndex),
-        (10, GetIndices()),
-        (10, GetAlias()),
-        (10, genRemoveIndex(state)),
-        (10, genPutAlias(state))
+        (10, CreateIndex()),
+        (5, GetIndices()),
+        (5, GetAlias()),
+        (5, genRemoveIndex(state)),
+        (5, genPutAlias(state))
       )
     }
   }
 
-  case object CreateIndex extends Command {
+  case class CreateIndex() extends Command {
 
     var response: (String, Int) = ("-1", -1)
 
@@ -91,18 +92,28 @@ object HesehusSpecification extends Commands {
 
     override def run(sut: Sut): Result = {
       response = new HesehusApi().createIndex
-      println("Created index " + response._1)
       response._2
     }
 
     override def nextState(state: State): State = {
-      //response = new HesehusApi().createIndex
-      state.copy(indices = state.indices :+ response._1)
+      if (response._1 != "-1") {
+        state.copy(indices = state.indices :+ response._1)
+      }
+      else {
+        state
+      }
     }
 
     override def preCondition(state: State): Boolean = true
 
-    override def postCondition(state: State, result: Try[Result]): Prop = result.get == 200
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val r = result.get == 200
+      if (!r) {
+        println("CreateIndex")
+        println(result.get)
+      }
+      r
+    }
   }
 
   case class GetIndices() extends Command {
@@ -116,10 +127,13 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      println("GetIndex")
-      println("  state: " + state.indices)
-      println("  api: " + result.get)
-      state.indices.sorted == result.get
+      val r = state.indices.sorted == result.get.sorted
+      if (!r) {
+        println("GetIndices")
+        println("State: " + state.indices)
+        println("API: " + result.get)
+      }
+      r
     }
   }
 
@@ -127,16 +141,20 @@ object HesehusSpecification extends Commands {
 
     override type Result = Int
 
-    override def run(sut: Sut): Result = {
-      println("RemoveIndex " + index)
-      sut.removeIndex(index)
-    }
+    override def run(sut: Sut): Result = sut.removeIndex(index)
 
     override def nextState(state: State): State = state.copy(indices = state.indices.filterNot(_ == index))
 
     override def preCondition(state: State): Boolean = state.indices.contains(index)
 
-    override def postCondition(state: State, result: Try[Result]): Prop = result.get == 200
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val r = result.get == 200
+      if (!r) {
+        println("RemoveIndex")
+        println(result.get)
+      }
+      r
+    }
   }
 
   case class GetAlias() extends Command {
@@ -149,17 +167,22 @@ object HesehusSpecification extends Commands {
 
     override def preCondition(state: State): Boolean = true
 
-    override def postCondition(state: State, result: Try[Result]): Prop = state.alias == result.get
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val r = state.alias.sorted == result.get.sorted
+      if (!r) {
+        println("GetAlias")
+        println("State: " + state.alias)
+        println("API: " + result.get)
+      }
+      r
+    }
   }
 
   case class PutAlias(indices: Seq[String]) extends Command {
 
-    println("PutAlias generated")
-
     override type Result = Int
 
     override def run(sut: Sut): Result = {
-      println("PutAlias " + indices)
       sut.putAlias(indices)
     }
 
@@ -167,7 +190,14 @@ object HesehusSpecification extends Commands {
 
     override def preCondition(state: State): Boolean = indices.forall(state.indices.contains)
 
-    override def postCondition(state: State, result: Try[Result]): Prop = result.get == 200
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val r = result.get == 200
+      if (!r) {
+        println("PutAlias")
+        println(result.get)
+      }
+      r
+    }
   }
 
 }
@@ -177,6 +207,9 @@ object Runner extends Properties("Hesehus") {
   println("init resetttttttttttttttttttttttttttttttttttttttttttttt")
   new HesehusApi().reset()
 
-  property("HesehusCommands") = HesehusSpecification.property()
+  property("HesehusCommands") = {
+    new HesehusApi().reset()
+    HesehusSpecification.property()
+  }
 
 }

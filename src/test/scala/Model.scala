@@ -6,39 +6,4 @@ case class Model(
 
 ) {
 
-  def isEmpty: Boolean = {
-    true
-  }
-
-  def getAmount: String = {
-    "do http get"
-  }
-
-  def containIndices: Boolean = {
-    indices.nonEmpty
-  }
-
-  def getIndex(index: Int): String = {
-    indices(index)
-  }
-
-  def getIndices: List[String] = {
-    indices.toList
-  }
-
-  def addIndex(index: String): Model = {
-    indices = indices:+index
-    this
-  }
-
-  def setAlias(alias: Seq[String]): Model = {
-    this.alias = alias
-    this
-  }
-
-  def removeIndex(index: String): Model = {
-    indices = indices.filterNot(item => item.equals(index))
-    this
-  }
-
 }
