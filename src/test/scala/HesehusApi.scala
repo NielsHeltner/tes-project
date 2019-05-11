@@ -1,6 +1,8 @@
 import Request._
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json.{JsArray, Json}
+import scalaj.http.HttpResponse
 
 class HesehusApi {
 
@@ -34,7 +36,7 @@ class HesehusApi {
     Json.parse(response.body).as[JsArray]
   }
 
-  def putAlias(indices: Seq[String]): Unit = {
+  def putAlias(indices: Seq[String]): HttpResponse[String] = {
     val indicesJson = Json.toJson(indices).as[JsArray]
     val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
     //println(s"${request.method} body: " + Json.stringify(indicesJson))
