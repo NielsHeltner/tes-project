@@ -1,47 +1,59 @@
 import Request._
-import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.libs.json.{JsArray, Json}
-import scalaj.http.HttpResponse
 
 class HesehusApi {
 
-  def getAmount: String = {
-    "do http get"
+  def reset(): Unit = {
+    println("Resetting SuT...")
+    putAlias(Seq[String]())
+    val indices = getIndices
+    println("Removing " + indices.size + " indices...")
+    indices.foreach(removeIndex)
+    println("Finished resetting")
   }
 
-  def createIndex: (String, Boolean) =  {
+  def createIndex: (String, Int) =  {
     val request = post("/api/productsearch/v1/Index")
     val response = request.asString
-    (Json.parse(response.body).as[JsObject].value("id").as[String], response.is2xx)
+    (Json.parse(response.body).as[JsObject].value("id").as[String], response.code)
   }
 
   def getIndices: List[String] = {
     val request = get("/api/productsearch/v1/Index")
     val response = request.asString
-
-    Json.parse(response.body).as[List[JsObject]].map(obj => obj.value("id").as[String])
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
   }
 
-  def removeIndex(index: String): Boolean = {
-    val request = delete("/api/productsearch/v1/Index/" + index)
+  def removeIndex(index: String): Int = {
+    val request = delete(s"/api/productsearch/v1/Index/$index")
     val response = request.asString
-    println("Remove Response code " + response.code)
-    response.is2xx
+    response.code
   }
 
-  def getAlias: JsArray = {
+  def getAlias: List[String] = {
     val request = get("/api/productsearch/v1/Alias")
     val response = request.asString
-    Json.parse(response.body).as[JsArray]
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
   }
 
-  def putAlias(indices: Seq[String]): HttpResponse[String] = {
+  def putAlias(indices: Seq[String]): Int = {
     val indicesJson = Json.toJson(indices).as[JsArray]
     val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
-    //println(s"${request.method} body: " + Json.stringify(indicesJson))
-    //request.postData(Json.stringify(indicesJson))
-    request.asString
+    request.asString.code
+  }
+
+}
+
+object HesehusApi {
+
+  def reset(): Unit = {
+    val sut = new HesehusApi
+    println("Resetting SuT...")
+    sut.putAlias(Seq[String]())
+    val indices = sut.getIndices
+    println("Removing " + indices.size + " indices...")
+    indices.foreach(sut.removeIndex)
+    println("Finished resetting")
   }
 
 }
