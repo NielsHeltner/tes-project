@@ -44,7 +44,9 @@ object HesehusSpecification extends Commands {
     * [[canCreateNewSut]] is not true for the given state.
     */
   override def newSut(state: State): Sut = {
-    new HesehusApi
+    val api = new HesehusApi
+    api.putAlias(state.alias)
+    api
   }
 
   /** Destroy the system represented by the given [[Sut]] instance, and release any resources related to it.
@@ -56,21 +58,28 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    Gen.const(new Model)
+    Gen.const(Model())
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
-    Gen.someOf(state.indices).map(PutAlias)
+    if (state.alias.isEmpty) { //code 500 if putalias with empty list, if alias is already empty
+      Gen.atLeastOne(state.indices).map(PutAlias)
+    }
+    else {
+      Gen.someOf(state.indices).map(PutAlias)
+    }
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
-  override def genCommand(state: State): Gen[Command] = Gen.oneOf(
-    Gen.const(GetAlias),
-    genPutAlias(state)
-  )
+  override def genCommand(state: State): Gen[Command] = {
+    Gen.oneOf(
+      Gen.const(GetAlias()),
+      genPutAlias(state)
+    )
+  }
 
-  case object GetAlias extends Command {
+  case class GetAlias() extends Command {
 
     override type Result = JsArray
 
@@ -82,24 +91,22 @@ object HesehusSpecification extends Commands {
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val ids = result.get.value.map(_.as[JsObject]).map(_.value("id").as[String])
-      state.alias.indices.count { i => ids(i) != state.alias(i) } == 0
+      state.alias == ids
     }
 
   }
 
-  case class PutAlias(indices: Seq[String]) extends UnitCommand {
+  case class PutAlias(indices: Seq[String]) extends Command {
 
-    override def run(sut: Sut): Unit = {
-      sut.putAlias(indices)
-    }
+    override type Result = Int
 
-    override def nextState(state: State): State = {
-      state.clone(alias = indices)
-    }
+    override def run(sut: Sut): Result = sut.putAlias(indices).code
+
+    override def nextState(state: State): State = state.copy(alias = indices)
 
     override def preCondition(state: State): Boolean = true
 
-    override def postCondition(state: State, success: Boolean): Prop = success
+    override def postCondition(state: State, result: Try[Result]): Prop = result.get == 200
 
   }
 
