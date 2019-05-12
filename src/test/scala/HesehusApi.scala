@@ -4,7 +4,7 @@ import play.api.libs.json.{JsArray, JsObject, Json}
 class HesehusApi {
 
   def reset(): Unit = {
-    println("Resetting SuT...")
+    println("Resetting SUT...")
     putAlias(Seq[String]())
     val indices = getIndices
     println("Removing " + indices.size + " indices...")
@@ -40,20 +40,6 @@ class HesehusApi {
     val indicesJson = Json.toJson(indices).as[JsArray]
     val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
     request.asString.code
-  }
-
-}
-
-object HesehusApi {
-
-  def reset(): Unit = {
-    val sut = new HesehusApi
-    println("Resetting SuT...")
-    sut.putAlias(Seq[String]())
-    val indices = sut.getIndices
-    println("Removing " + indices.size + " indices...")
-    indices.foreach(sut.removeIndex)
-    println("Finished resetting")
   }
 
 }
