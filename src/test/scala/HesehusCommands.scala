@@ -73,8 +73,8 @@ object HesehusSpecification extends Commands {
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJsObject(body)
-    Gen.const(CreateIndexing(generatedJson))
+    val generatedJson = JsonGenerator.parseJs(body)
+    Gen.const(CreateIndexing(generatedJson.as[JsObject]))
   }
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {
