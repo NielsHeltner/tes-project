@@ -4,7 +4,7 @@ import scalaj.http.HttpResponse
 
 class HesehusApi {
 
-  val jsonGenerator = new JsonGenerator
+  //val jsonGenerator = new JsonGenerator
 
   def getAmount: String = {
     "do http get"
@@ -24,12 +24,12 @@ class HesehusApi {
     request.asString
   }
 
-  def postIndexing: String = {
+  /*def postIndexing: String = {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     val generatedJson = jsonGenerator.parseJsObject(body)
     println(Json.prettyPrint(generatedJson))
     val request = post("/api/productsearch/v1/Indexing", generatedJson.toString())
     val response = request.asString
     response.code.toString
-  }
+  }*/
 }

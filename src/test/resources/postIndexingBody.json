@@ -1,32 +1,32 @@
 {
-  "id": "",
+  "id": "50",
   "alternativeIds": [
-    ""
+    "50"
   ],
-  "productNumber": "",
-  "dataAge": "",
-  "name": "",
+  "productNumber": "50",
+  "dataAge": "date",
+  "name": "255",
   "categories": [
     [
       {
-        "categoryId": "",
-        "name": ""
+        "categoryId": "50",
+        "name": "255"
       }
     ]
   ],
   "stockKeepingUnits": [
     {
-      "id": "",
-      "skuNo": "",
-      "ean": "",
-      "name": "",
+      "id": "50",
+      "skuNo": "255",
+      "ean": "13",
+      "name": "255",
       "attributes": [
         {
-          "attributeKey": "",
-          "name": "",
+          "attributeKey": "50",
+          "name": "50",
           "values": [
             {
-              "id": "",
+              "id": "50",
               "value": ""
             }
           ]
@@ -43,37 +43,37 @@
     }
   ],
   "prices": {
-    "currency": "",
-    "defaultPrice": 0,
+    "currency": "3",
+    "defaultPrice": 0.0,
     "salesPrices": [
       {
         "priceGroupId": "",
-        "price": 0,
-        "offerTimeFromInclusive": "",
-        "offerTimeToExclusive": ""
+        "price": 0.0,
+        "offerTimeFromInclusive": "date",
+        "offerTimeToExclusive": "date"
       }
     ]
   },
-  "shortDescription": "",
+  "shortDescription": "255",
   "longDescription": "",
   "alternativeSearchWords": [
     ""
   ],
   "attributes": [
     {
-      "attributeKey": "",
-      "name": "",
+      "attributeKey": "50",
+      "name": "50",
       "values": [
         {
-          "id": "",
+          "id": "50",
           "value": ""
         }
       ]
     }
   ],
   "metaData": "",
-  "rating": 0,
-  "stock": 0,
-  "activeFrom": "",
-  "activeTo": ""
+  "rating": 0.0,
+  "stock": 0.0,
+  "activeFrom": "date",
+  "activeTo": "date"
 }
