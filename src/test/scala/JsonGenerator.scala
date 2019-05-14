@@ -1,5 +1,3 @@
-import java.util.NoSuchElementException
-
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalacheck.Gen
 import play.api.libs.json._
@@ -31,12 +29,8 @@ object JsonGenerator {
             value = generateString()
           }
           else {
-            println(s"key: $key")
             val size = string.value.toInt
-            println(s"size: $size")
             value = generateString(size)
-            println(s"value: $value")
-            println("")
           }
           jObj ++ Json.obj(key -> value)
         case _ =>
@@ -83,17 +77,8 @@ object JsonGenerator {
     array
   }
 
-  def generateString(size: Long = Long.MaxValue): String = {
-    try {
-      Gen.asciiPrintableStr.suchThat(_.length <= size).sample.get
-    }
-    catch {
-      case e: NoSuchElementException => {
-        println("NSE")
-        e.printStackTrace()
-        "NSE"
-      }
-    }
+  def generateString(size: Int = Int.MaxValue): String = {
+    Gen.asciiPrintableStr.map(string => if (string.length > size) string.substring(0, size) else string).sample.get
   }
 
   def generateDate: String = {

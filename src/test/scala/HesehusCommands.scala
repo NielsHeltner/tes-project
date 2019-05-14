@@ -1,4 +1,3 @@
-import Request.getClass
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, Json}
@@ -75,31 +74,9 @@ object HesehusSpecification extends Commands {
     */
   override def genCommand(state: State): Gen[Command] = {
     Gen.oneOf(
-      genjson(),
-      genjson()
+      Gen.const(GetAlias()),
+      genPutAlias(state)
     )
-  }
-
-  case class genjson() extends Command {
-
-    override type Result = String
-
-    override def run(sut: Sut): Result = {
-      println("HI")
-      val config: JsObject = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-      println("eqw")
-      val gen = JsonGenerator.parseJsObject(config)
-      println("hi")
-      println(Json.prettyPrint(gen))
-      "hi"
-    }
-
-    override def nextState(state: State): State = state
-
-    override def preCondition(state: State): Boolean = true
-
-    override def postCondition(state: State, result: Try[Result]): Prop = true
-
   }
 
   case class GetAlias() extends Command {
