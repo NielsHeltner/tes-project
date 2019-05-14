@@ -1,5 +1,5 @@
 import Request._
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 
 class HesehusApi {
 
@@ -43,11 +43,20 @@ class HesehusApi {
     request.asString.code
   }
 
-  def postIndexing(generatedJson: JsValue): Int = {
-    //val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-    //val generatedJson = JsonGenerator.parseJs(body)
-    println(Json.prettyPrint(generatedJson))
-    val request = post("/api/productsearch/v1/Indexing", generatedJson.toString)
+  def createIndexing(product: JsObject): Int = {
+    println(Json.prettyPrint(product))
+    val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
+    request.asString.code
+  }
+
+  def getIndexing(index: String): JsObject = {
+    val request = get("/api/productsearch/v1/Indexing/$index")
+    val response = request.asString
+    Json.parse(response.body).as[JsObject]
+  }
+
+  def putIndexing(product: JsObject): Int = {
+    val request = put("/api/productsearch/v1/Indexing", Json.stringify(product))
     request.asString.code
   }
 
