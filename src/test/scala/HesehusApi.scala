@@ -1,4 +1,6 @@
 import Request._
+import play.api.libs.json.{JsArray, Json, JsObject}
+import scalaj.http.HttpResponse
 import play.api.libs.json.{JsArray, JsObject, Json}
 
 class HesehusApi {
@@ -42,4 +44,12 @@ class HesehusApi {
     request.asString.code
   }
 
+  /*def postIndexing: String = {
+    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
+    val generatedJson = jsonGenerator.parseJsObject(body)
+    println(Json.prettyPrint(generatedJson))
+    val request = post("/api/productsearch/v1/Indexing", generatedJson.toString())
+    val response = request.asString
+    response.code.toString
+  }*/
 }
