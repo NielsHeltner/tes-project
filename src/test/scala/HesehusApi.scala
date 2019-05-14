@@ -1,27 +1,47 @@
 import Request._
 import play.api.libs.json.{JsArray, Json, JsObject}
 import scalaj.http.HttpResponse
+import play.api.libs.json.{JsArray, JsObject, Json}
 
 class HesehusApi {
 
-  //val jsonGenerator = new JsonGenerator
-
-  def getAmount: String = {
-    "do http get"
+  def reset(): Unit = {
+    println("Resetting SUT...")
+    putAlias(Seq[String]())
+    val indices = getIndices
+    println("Removing " + indices.size + " indices...")
+    indices.foreach(removeIndex)
+    println("Finished resetting")
   }
 
-  def getAlias: JsArray = {
+  def createIndex: (String, Int) =  {
+    val request = post("/api/productsearch/v1/Index")
+    val response = request.asString
+    (Json.parse(response.body).as[JsObject].value("id").as[String], response.code)
+  }
+
+  def getIndices: List[String] = {
+    val request = get("/api/productsearch/v1/Index")
+    val response = request.asString
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
+  }
+
+  def removeIndex(index: String): Int = {
+    val request = delete(s"/api/productsearch/v1/Index/$index")
+    val response = request.asString
+    response.code
+  }
+
+  def getAlias: List[String] = {
     val request = get("/api/productsearch/v1/Alias")
     val response = request.asString
-    Json.parse(response.body).as[JsArray]
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
   }
 
-  def putAlias(indices: Seq[String]): HttpResponse[String] = {
+  def putAlias(indices: Seq[String]): Int = {
     val indicesJson = Json.toJson(indices).as[JsArray]
     val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
-    //println(s"${request.method} body: " + Json.stringify(indicesJson))
-    //request.postData(Json.stringify(indicesJson))
-    request.asString
+    request.asString.code
   }
 
   /*def postIndexing: String = {
