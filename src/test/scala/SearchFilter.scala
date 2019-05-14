@@ -22,7 +22,7 @@ class SearchFilter {
     filteredElements.filter(element => {
       val from = new DateTime(element.value("activeFrom").as[JsString].value).getMillis
       val to = new DateTime(element.value("activeTo").as[JsString].value).getMillis
-      val time = new DateTime(params.value("searchTime"))
+      val time = new DateTime(params.value("searchTime").as[JsString].value)
 
       time.isAfter(from) &&
       time.isBefore(to) &&

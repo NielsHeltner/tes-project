@@ -112,10 +112,10 @@ object HesehusSpecification extends Commands {
         (10, CreateIndex()),
         (5, GetIndices()),
         (5, GetAlias()),
-        (5, genRemoveIndex(state)),
-        (5, genCreateIndexing(state)),
+        (5, genRemoveIndex(state))
+        //(5, genCreateIndexing(state)),
         //(5, genPutAlias(state)),
-        (10, genSearch(state))
+        //(10, genSearch(state))
       )
     }
   }
