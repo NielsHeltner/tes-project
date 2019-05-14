@@ -266,6 +266,26 @@ object HesehusSpecification extends Commands {
       case other => other
     }
   }
+
+  case class PutIndexing(product: JsObject) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.putIndexing(product)
+
+    override def nextState(state: State): State = state
+
+    override def preCondition(state: State): Boolean =
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("PutIndexing")
+        println("  " + result.get)
+      }
+      success
+    }
+  }
 }
 
 object Runner extends Properties("Hesehus") {
