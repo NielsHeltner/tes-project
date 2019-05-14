@@ -1,0 +1,79 @@
+{
+  "id": "",
+  "alternativeIds": [
+    ""
+  ],
+  "productNumber": "",
+  "dataAge": "",
+  "name": "",
+  "categories": [
+    [
+      {
+        "categoryId": "",
+        "name": ""
+      }
+    ]
+  ],
+  "stockKeepingUnits": [
+    {
+      "id": "",
+      "skuNo": "",
+      "ean": "",
+      "name": "",
+      "attributes": [
+        {
+          "attributeKey": "",
+          "name": "",
+          "values": [
+            {
+              "id": "",
+              "value": ""
+            }
+          ]
+        }
+      ],
+      "metaData": ""
+    }
+  ],
+  "media": [
+    {
+      "type": 0,
+      "url": "",
+      "metadata": ""
+    }
+  ],
+  "prices": {
+    "currency": "",
+    "defaultPrice": 0,
+    "salesPrices": [
+      {
+        "priceGroupId": "",
+        "price": 0,
+        "offerTimeFromInclusive": "",
+        "offerTimeToExclusive": ""
+      }
+    ]
+  },
+  "shortDescription": "",
+  "longDescription": "",
+  "alternativeSearchWords": [
+    ""
+  ],
+  "attributes": [
+    {
+      "attributeKey": "",
+      "name": "",
+      "values": [
+        {
+          "id": "",
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "metaData": "",
+  "rating": 0,
+  "stock": 0,
+  "activeFrom": "",
+  "activeTo": ""
+}
