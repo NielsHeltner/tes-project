@@ -38,25 +38,22 @@ object HesehusSpecification extends Commands {
     */
   override def destroySut(sut: Sut): Unit = sut.reset()
 
+  def genInitialIndices: Gen[List[String]] = for {
+    size <- Gen.choose(0, 10)
+  } yield 0.to(size).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
+
+  def genInitialAlias(indices: List[String]): Gen[List[String]] = {
+    Gen.someOf(indices).map(List[String])
+  }
+
   /** A generator that should produce an initial [[State]] instance that is usable by [[newSut]] to create a new system
     * under test. The state returned by this generator is always checked with the [[initialPreCondition]] method before
     * it is used.
     */
-  override def genInitialState: Gen[State] = {
-
-    def genInitialIndices(): Gen[List[String]] = {
-      0.to(Gen.choose(0, 10).sample.get).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
-    }
-
-    def genInitialAlias(indices: List[String]): Gen[List[String]] = {
-      Gen.someOf(indices).map(List[String])
-    }
-
-    val indices = genInitialIndices().sample.get
-    val alias = genInitialAlias(indices).sample.get
-    Gen.const(Model(indices = indices, alias = alias))
-  }
-
+  override def genInitialState: Gen[State] = for {
+    indices <- genInitialIndices
+    alias <- genInitialAlias(indices)
+  } yield Model(indices = indices, alias = alias)
 
   def genPutAlias(state: State): Gen[PutAlias] = {
     if (state.alias.isEmpty) { //if alias is already empty, and PutAlias with empty list, then code 500
@@ -71,11 +68,10 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices).map(RemoveIndex)
   }
 
-  def genCreateIndexing(state: State): Gen[CreateIndexing] = {
-    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJs(body)
-    Gen.const(CreateIndexing(generatedJson))
-  }
+  def genCreateIndexing(state: State): Gen[CreateIndexing] = for {
+    body <- Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
+    json <- JsonGenerator.genJson(body)
+  } yield CreateIndexing(json)
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {
     Gen.oneOf(state.products).map(GetIndexing)
