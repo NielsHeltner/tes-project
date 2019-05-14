@@ -74,7 +74,7 @@ object HesehusSpecification extends Commands {
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     val generatedJson = JsonGenerator.parseJs(body)
-    Gen.const(CreateIndexing(generatedJson.as[JsObject]))
+    Gen.const(CreateIndexing(generatedJson))
   }
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {
@@ -89,8 +89,7 @@ object HesehusSpecification extends Commands {
         (10, CreateIndex()),
         (5, GetIndices()),
         (5, GetAlias()),
-        (5, genCreateIndexing(state)),
-        (5, genGetIndexing(state))
+        (5, genCreateIndexing(state))
       )
     }
     else {
@@ -100,8 +99,7 @@ object HesehusSpecification extends Commands {
         (5, GetAlias()),
         (5, genRemoveIndex(state)),
         (5, genPutAlias(state)),
-        (5, genCreateIndexing(state)),
-        (5, genGetIndexing(state))
+        (5, genCreateIndexing(state))
       )
     }
   }
