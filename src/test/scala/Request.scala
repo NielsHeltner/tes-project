@@ -6,9 +6,10 @@ object Request {
   val config: JsObject = Json.parse(getClass.getResourceAsStream("config.json")).as[JsObject]
   val host: String = config.value("host").as[String]
   val port: String = config.value("port").as[String]
+  val apiKey: String = config.value("apiKey").as[String]
 
-  val apiKey: String = {
-    val request = Http("http://" + host + ":" + port + "/api/v1/Auth").param("apiKey", "t2").postData("")
+  val accessToken: String = {
+    val request = Http("http://" + host + ":" + port + "/api/v1/Auth").param("apiKey", apiKey).postData("")
     val response = request.asString
     val json = Json.parse(response.body).as[JsObject]
     json.value("accessToken").as[String]
@@ -31,11 +32,11 @@ object Request {
   }
 
   def request(path: String, method: String): HttpRequest = {
-    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $apiKey").method(method)
+    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $accessToken").method(method)
   }
 
   def request(path: String, method: String, body: String): HttpRequest = {
-    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $apiKey").header("content-type", "application/json").postData(body).method(method)
+    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $accessToken").header("content-type", "application/json").postData(body).method(method)
   }
 
 }
