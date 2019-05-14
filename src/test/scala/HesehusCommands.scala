@@ -1,6 +1,6 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import scala.util.Try
 
@@ -48,13 +48,22 @@ object HesehusSpecification extends Commands {
       0.to(Gen.choose(0, 10).sample.get).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
     }
 
-    def genInitialAlias(indices: List[String]): Gen[List[String]] = {
-      Gen.someOf(indices).map(List[String])
+    def genInitialAlias(indices: List[String]): Gen[String] = {
+      Gen.oneOf(indices)
+    }
+
+    def genInitialProduct: JsObject = {
+      val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
+      val generatedJson = JsonGenerator.parseJs(body).as[JsObject]
+
+      new HesehusApi().postIndexing(generatedJson)
+      generatedJson.as[JsObject]
     }
 
     val indices = genInitialIndices().sample.get
-    val alias = genInitialAlias(indices).sample.get
-    Gen.const(Model(indices = indices, alias = alias))
+    val alias = Seq[String](genInitialAlias(indices).sample.get)
+    val products = Seq[JsObject](genInitialProduct)
+    Gen.const(Model(indices = indices, alias = alias, products = products))
   }
 
 
@@ -73,7 +82,7 @@ object HesehusSpecification extends Commands {
 
   def genSearch(state: State): Gen[PostSearch] =  {
     val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJsObject(body)
+    val generatedJson = JsonGenerator.parseJs(body).as[JsObject]
     PostSearch(generatedJson)
   }
 
@@ -93,7 +102,8 @@ object HesehusSpecification extends Commands {
         (5, GetIndices()),
         (5, GetAlias()),
         (5, genRemoveIndex(state)),
-        (5, genPutAlias(state))
+        //(5, genPutAlias(state)),
+        (10, genSearch(state))
       )
     }
   }
@@ -223,7 +233,11 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = SearchFilter.filter(generatedJson, state.products) == result.get.sorted
+      val searchFilter = new SearchFilter
+      val filteredProducts = searchFilter.filter(generatedJson, state.products)
+      val sortedResult = result.get.sorted
+      val success = filteredProducts.size == result.get.size &&
+        filteredProducts.indices.count(index => filteredProducts(index).as[JsObject].value("id").as[String] != sortedResult(index)) == 0
       if (!success) {
         println("PostSearch")
         println("  State: " + state.alias)

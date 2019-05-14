@@ -1,4 +1,5 @@
 {
   "includeInActive": true,
-  "showOutOfStockProducts": true
+  "showOutOfStockProducts": true,
+  "searchTime": "date"
 }
