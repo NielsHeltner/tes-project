@@ -15,19 +15,27 @@ object Request {
   }
 
   def get(path: String): HttpRequest = {
-    Http("http://" + host + ":" + port + path).header("Authorization", s"Bearer $apiKey").method("GET")
+    request(path, "GET")
   }
 
   def put(path: String, body: String = ""): HttpRequest = {
-    Http("http://" + host + ":" + port + path).header("Authorization", s"Bearer $apiKey").postData(body).method("PUT")
+    request(path, "PUT", body)
   }
 
   def post(path: String, body: String = ""): HttpRequest = {
-    Http("http://" + host + ":" + port + path).header("Authorization", s"Bearer $apiKey").postData(body).method("POST")
+    request(path, "POST", body)
   }
 
   def delete(path: String): HttpRequest = {
-    Http("http://" + host + ":" + port + path).header("Authorization", s"Bearer $apiKey").method("DELETE")
+    request(path, "DELETE")
+  }
+
+  def request(path: String, method: String): HttpRequest = {
+    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $apiKey").method(method)
+  }
+
+  def request(path: String, method: String, body: String): HttpRequest = {
+    Http(s"http://$host:$port$path").header("Authorization", s"Bearer $apiKey").header("content-type", "application/json").postData(body).method(method)
   }
 
 }

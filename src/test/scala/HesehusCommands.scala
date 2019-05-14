@@ -1,6 +1,9 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
+import play.api.libs.json.{JsArray, JsObject, Json}
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.util.{Success, Try}
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
@@ -41,7 +44,9 @@ object HesehusSpecification extends Commands {
     * [[canCreateNewSut]] is not true for the given state.
     */
   override def newSut(state: State): Sut = {
-    new HesehusApi
+    val api = new HesehusApi
+    api.putAlias(state.alias)
+    api
   }
 
   /** Destroy the system represented by the given [[Sut]] instance, and release any resources related to it.
@@ -53,28 +58,55 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    new Model
+    Gen.const(Model())
+  }
+
+  def genPutAlias(state: State): Gen[PutAlias] = {
+    if (state.alias.isEmpty) { //code 500 if putalias with empty list, if alias is already empty
+      Gen.atLeastOne(state.indices).map(PutAlias)
+    }
+    else {
+      Gen.someOf(state.indices).map(PutAlias)
+    }
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
-  override def genCommand(state: State): Gen[Command] = Gen.oneOf(
-    GetAmount, GetAmount
-  )
+  override def genCommand(state: State): Gen[Command] = {
+    Gen.oneOf(
+      Gen.const(GetAlias()),
+      genPutAlias(state)
+    )
+  }
 
-  case object GetAmount extends Command {
+  case class GetAlias() extends Command {
 
-    override type Result = String
+    override type Result = JsArray
 
-    override def run(sut: Sut): Result = sut.getAmount
+    override def run(sut: Sut): Result = sut.getAlias
 
     override def nextState(state: State): State = state
 
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      result == Success(state.getAmount)
+      val ids = result.get.value.map(_.as[JsObject]).map(_.value("id").as[String])
+      state.alias == ids
     }
+
+  }
+
+  case class PutAlias(indices: Seq[String]) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.putAlias(indices).code
+
+    override def nextState(state: State): State = state.copy(alias = indices)
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = result.get == 200
 
   }
 
