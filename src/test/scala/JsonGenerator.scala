@@ -1,21 +1,23 @@
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 
 object JsonGenerator {
 
-  def parseJs(js: JsValue, acc: JsValue = JsObject.empty, key: String = ""): JsValue = {
+  def parseJs[T <: JsValue](js: JsValue, acc: T = JsObject.empty, key: String = ""): T = {
     val value: JsValue = js match {
       case arr: JsArray =>
         arr.value.foldLeft(JsArray.empty)((jsArr, value) =>
-          parseJs(value, jsArr).as[JsArray])
+          parseJs(value, jsArr))
       case obj: JsObject =>
         obj.keys.foldLeft(JsObject.empty)((jsObj, key) =>
-          parseJs(obj.value(key), jsObj, key).as[JsObject])
+          parseJs(obj.value(key), jsObj, key))
       case number: JsNumber =>
         JsNumber(generateNumber(number))
       case string: JsString =>
-        JsString(generateString(string))
+        JsString(genString(string).sample.get)
+      case _: JsBoolean =>
+        JsBoolean(generateBoolean)
       case _ =>
         println("ERROR - Could not parse JS value")
         JsNull
@@ -23,41 +25,40 @@ object JsonGenerator {
 
     acc match {
       case arr: JsArray =>
-        arr :+ value
+        (arr :+ value).asInstanceOf[T]
       case obj: JsObject =>
         if (key.isEmpty) {
-          value
+          value.asInstanceOf[T]
         }
         else {
-          obj ++ Json.obj(key -> value)
+          (obj ++ Json.obj(key -> value)).asInstanceOf[T]
         }
       case _ =>
         println("ERROR - Could not parse JS value")
-        JsNull
+        JsNull.asInstanceOf[T]
     }
   }
 
-  def generateString(jsStr : JsString): String = {
+  def genString(jsString : JsString): Gen[String] = {
 
-    def generateSizedString(size: Int = Int.MaxValue): String = {
-      Gen.asciiPrintableStr.map(string => if (string.length > size) string.substring(0, size) else string).sample.get
+    def genSizedString(size: Int = Int.MaxValue): Gen[String] = {
+      Gen.asciiPrintableStr.map(string => if (string.length > size) string.substring(0, size) else string)
     }
 
-    def generateDate: String = {
+    def genDate: Gen[String] = {
       val date = Gen.calendar.sample.get
-      val datetime = new DateTime(date).withZone(DateTimeZone.UTC)
-      datetime.toString
+      new DateTime(date).withZone(DateTimeZone.UTC).toString
     }
 
-    if (jsStr.value == "date") {
-      generateDate
+    if (jsString.value == "date") {
+      genDate
     }
-    else if (jsStr.value.isEmpty) {
-      generateSizedString()
+    else if (jsString.value.isEmpty) {
+      genSizedString()
     }
     else {
-      val size = jsStr.value.toInt
-      generateSizedString(size)
+      val size = jsString.value.toInt
+      genSizedString (size)
     }
   }
 
@@ -83,6 +84,10 @@ object JsonGenerator {
     else { //jsNum.value.isDecimalDouble
       generateDouble
     }
+  }
+
+  def generateBoolean: Boolean = {
+    Arbitrary.arbBool.arbitrary.sample.get
   }
 
 }
