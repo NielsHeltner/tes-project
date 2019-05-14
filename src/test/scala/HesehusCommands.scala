@@ -1,6 +1,6 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 
 import scala.util.Try
 
@@ -56,7 +56,7 @@ object HesehusSpecification extends Commands {
       val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
       val generatedJson = JsonGenerator.parseJs(body).as[JsObject]
 
-      new HesehusApi().postIndexing(generatedJson)
+      new HesehusApi().createIndexing(generatedJson)
       generatedJson.as[JsObject]
     }
 
@@ -82,8 +82,8 @@ object HesehusSpecification extends Commands {
 
   def genSearch(state: State): Gen[PostSearch] =  {
     val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJs(body).as[JsObject]
-    PostSearch(generatedJson)
+    val generatedJson = JsonGenerator.parseJs(body)
+    Gen.const(PostSearch(generatedJson))
   }
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
@@ -113,7 +113,7 @@ object HesehusSpecification extends Commands {
         (5, GetIndices()),
         (5, GetAlias()),
         (5, genRemoveIndex(state)),
-        (5, genCreateIndexing(state))
+        (5, genCreateIndexing(state)),
         //(5, genPutAlias(state)),
         (10, genSearch(state))
       )
@@ -316,7 +316,7 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = state
 
-    override def preCondition(state: State): Boolean =
+    override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
