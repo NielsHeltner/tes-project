@@ -1,5 +1,6 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
+import play.api.libs.json.{JsObject, Json}
 
 import scala.util.Try
 
@@ -68,6 +69,12 @@ object HesehusSpecification extends Commands {
 
   def genRemoveIndex(state: State): Gen[RemoveIndex] = {
     Gen.oneOf(state.indices).map(RemoveIndex)
+  }
+
+  def genSearch(state: State): Gen[PostSearch] =  {
+    val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
+    val generatedJson = JsonGenerator.parseJsObject(body)
+    PostSearch(generatedJson)
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
@@ -200,6 +207,27 @@ object HesehusSpecification extends Commands {
       if (!success) {
         println("PutAlias")
         println("  " + result.get)
+      }
+      success
+    }
+  }
+
+  case class PostSearch(generatedJson: JsObject) extends Command {
+
+    override type Result = List[String]
+
+    override def run(sut: Sut): Result = sut.postSearch(generatedJson)
+
+    override def nextState(state: State): State = state
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = SearchFilter.filter(generatedJson, state.products) == result.get.sorted
+      if (!success) {
+        println("PostSearch")
+        println("  State: " + state.alias)
+        println("  API: " + result.get)
       }
       success
     }

@@ -51,4 +51,13 @@ class HesehusApi {
     request.asString.code
   }
 
+  def postSearch(generatedJson: JsObject): List[String] =  {
+    //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
+    //val generatedJson = JsonGenerator.parseJsObject(body)
+    println(Json.prettyPrint(generatedJson))
+    val request = post("/api/productsearch/v1/Search", generatedJson.toString)
+    val response = request.asString
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
+  }
+
 }
