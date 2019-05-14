@@ -1,5 +1,6 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 
 import scala.util.Try
 
@@ -70,6 +71,16 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices).map(RemoveIndex)
   }
 
+  def genCreateIndexing(state: State): Gen[CreateIndexing] = {
+    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
+    val generatedJson = JsonGenerator.parseJsObject(body)
+    Gen.const(CreateIndexing(generatedJson))
+  }
+
+  def genGetIndexing(state: State): Gen[GetIndexing] = {
+    Gen.oneOf(state.products).map(GetIndexing)
+  }
+
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
@@ -77,7 +88,9 @@ object HesehusSpecification extends Commands {
       Gen.frequency(
         (10, CreateIndex()),
         (5, GetIndices()),
-        (5, GetAlias())
+        (5, GetAlias()),
+        (5, genCreateIndexing(state)),
+        (5, genGetIndexing(state))
       )
     }
     else {
@@ -86,7 +99,9 @@ object HesehusSpecification extends Commands {
         (5, GetIndices()),
         (5, GetAlias()),
         (5, genRemoveIndex(state)),
-        (5, genPutAlias(state))
+        (5, genPutAlias(state)),
+        (5, genCreateIndexing(state)),
+        (5, genGetIndexing(state))
       )
     }
   }
@@ -205,6 +220,54 @@ object HesehusSpecification extends Commands {
     }
   }
 
+  case class CreateIndexing(product: JsObject) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.createIndexing(product)
+
+    override def nextState(state: State): State = {
+      state.copy(products = state.products :+ product)
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("CreateIndexing")
+        println("  " + result.get)
+      }
+      success
+    }
+  }
+
+  case class GetIndexing(product: JsObject) extends Command {
+
+    override type Result = JsObject
+
+    override def run(sut: Sut): Result = { sut.getIndexing(product.value("id").toString())}
+
+    override def nextState(state: State): State = { state }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val updated_result = result.get - "isInStock"
+      val success = sortJs(product).toString() == sortJs(updated_result).toString()
+      if (!success) {
+        println("GetIndexing")
+        println("  " + result.get)
+      }
+      success
+    }
+
+    def sortJs(js: JsValue): JsValue = js match {
+      case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
+      case JsArray(array) => JsArray(array.map(e => sortJs(e)))
+      case other => other
+    }
+  }
 }
 
 object Runner extends Properties("Hesehus") {
