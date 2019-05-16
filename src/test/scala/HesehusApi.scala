@@ -59,4 +59,9 @@ class HesehusApi {
     val request = put("/api/productsearch/v1/Indexing", Json.stringify(product))
     request.asString.code
   }
+
+  def removeIndexing(index: String): Int = {
+    val request = delete(s"/api/productsearch/v1/Indexing/$index")
+    request.asString.code
+  }
 }
