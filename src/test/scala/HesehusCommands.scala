@@ -51,14 +51,6 @@ object HesehusSpecification extends Commands {
       Gen.oneOf(indices)
     }
 
-    def genInitialProduct: JsObject = {
-      val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-      val generatedJson = JsonGenerator.parseJs(body).as[JsObject]
-
-      new HesehusApi().createIndexing(generatedJson)
-      generatedJson.as[JsObject]
-    }
-
     for {
       indices <- genInitialIndices
       alias <- genInitialAlias(indices)
@@ -66,22 +58,18 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
-    if (state.alias.isEmpty) { //if alias is already empty, and PutAlias with empty list, then code 500
-      Gen.atLeastOne(state.indices).map(PutAlias)
-    }
-    else {
-      Gen.someOf(state.indices).map(PutAlias)
-    }
+      Gen.oneOf(state.indices).map(PutAlias)
   }
 
   def genRemoveIndex(state: State): Gen[RemoveIndex] = {
     Gen.oneOf(state.indices).map(RemoveIndex)
   }
 
-  def genSearch(state: State): Gen[PostSearch] =  {
+  def genSearch(state: State): Gen[PostSearch] = {
     val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJs(body)
-    Gen.const(PostSearch(generatedJson))
+    for {
+      json <- JsonGenerator.genJson(body)
+    } yield PostSearch(json)
   }
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
@@ -203,7 +191,7 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = state.alias.sorted == result.get.sorted
+      val success = !(result.get.size > 1) && state.alias == result.get.head
       if (!success) {
         println("GetAlias")
         println("  State: " + state.alias)
@@ -213,7 +201,7 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  case class PutAlias(indices: Seq[String]) extends Command {
+  case class PutAlias(indices: String) extends Command {
 
     override type Result = Int
 

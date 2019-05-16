@@ -37,7 +37,7 @@ class HesehusApi {
     Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
   }
 
-  def putAlias(indices: Seq[String]): Int = {
+  def putAlias(indices: String): Int = {
     val indicesJson = Json.toJson(indices).as[JsArray]
     val request = put("/api/productsearch/v1/Alias", Json.stringify(indicesJson))
     request.asString.code
