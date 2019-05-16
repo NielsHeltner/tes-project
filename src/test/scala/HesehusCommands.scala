@@ -1,4 +1,3 @@
-import HesehusSpecification.State
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -75,9 +74,8 @@ object HesehusSpecification extends Commands {
   }
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
-    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     for {
-      json <- JsonGenerator.genJson(body)
+      json <- JsonGen.genPostIndexingJson
     } yield CreateIndexing(json)
   }
 
@@ -86,11 +84,10 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutIndexing(state: State): Gen[PutIndexing] = {
-    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     for {
-      json <- JsonGenerator.genJson(body)
+      json <- JsonGen.genPostIndexingJson
       product <- Gen.oneOf(state.indices(state.alias.head).toSeq)
-    } yield PutIndexing(json ++ Json.obj("id" -> product.value("id")))
+    } yield PutIndexing(json ++ Json.obj("id" -> product.value("id"))) // json.value("id") = product.value("id") ???
   }
 
   def genRemoveIndexing(state: State): Gen[RemoveIndexing] = {
@@ -287,7 +284,7 @@ object HesehusSpecification extends Commands {
       state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
     }
 
-    override def preCondition(state: State): Boolean = true
+    override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
@@ -307,7 +304,7 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = state
 
-    override def preCondition(state: State): Boolean = true
+    override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val updated_result = result.get - "isInStock"
@@ -335,7 +332,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = true
+    override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
@@ -410,7 +407,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = true
+    override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
