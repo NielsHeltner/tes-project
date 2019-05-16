@@ -43,10 +43,9 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-
-    def genInitialIndices(): Gen[List[String]] = {
-      0.to(Gen.choose(0, 10).sample.get).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
-    }
+    def genInitialIndices: Gen[List[String]] = for {
+      size <- Gen.choose(0, 10)
+    } yield 0.to(size).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
 
     def genInitialAlias(indices: List[String]): Gen[String] = {
       Gen.oneOf(indices)
@@ -60,12 +59,11 @@ object HesehusSpecification extends Commands {
       generatedJson.as[JsObject]
     }
 
-    val indices = genInitialIndices().sample.get
-    val alias = Seq[String](genInitialAlias(indices).sample.get)
-    val products = Seq[JsObject](genInitialProduct)
-    Gen.const(Model(indices = indices, alias = alias, products = products))
+    for {
+      indices <- genInitialIndices
+      alias <- genInitialAlias(indices)
+    } yield Model(indices = indices, alias = alias)
   }
-
 
   def genPutAlias(state: State): Gen[PutAlias] = {
     if (state.alias.isEmpty) { //if alias is already empty, and PutAlias with empty list, then code 500
@@ -88,8 +86,9 @@ object HesehusSpecification extends Commands {
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
-    val generatedJson = JsonGenerator.parseJs(body)
-    Gen.const(CreateIndexing(generatedJson))
+    for {
+      json <- JsonGenerator.genJson(body)
+    } yield CreateIndexing(json)
   }
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {

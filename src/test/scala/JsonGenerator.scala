@@ -4,14 +4,18 @@ import play.api.libs.json._
 
 object JsonGenerator {
 
-  def parseJs[T <: JsValue](js: JsValue, acc: T = JsObject.empty, key: String = ""): T = {
+  def genJson[T <: JsValue](js: JsValue, acc: T = JsObject.empty): Gen[T] = {
+    Gen.const(parseJson(js, acc))
+  }
+
+  private def parseJson[T <: JsValue](js: JsValue, acc: T = JsObject.empty, key: String = ""): T = {
     val value: JsValue = js match {
       case arr: JsArray =>
         arr.value.foldLeft(JsArray.empty)((jsArr, value) =>
-          parseJs(value, jsArr))
+          parseJson(value, jsArr).as[JsArray])
       case obj: JsObject =>
         obj.keys.foldLeft(JsObject.empty)((jsObj, key) =>
-          parseJs(obj.value(key), jsObj, key))
+          parseJson(obj.value(key), jsObj, key).as[JsObject])
       case number: JsNumber =>
         JsNumber(generateNumber(number))
       case string: JsString =>
@@ -58,7 +62,7 @@ object JsonGenerator {
     }
     else {
       val size = jsString.value.toInt
-      genSizedString (size)
+      genSizedString(size)
     }
   }
 
