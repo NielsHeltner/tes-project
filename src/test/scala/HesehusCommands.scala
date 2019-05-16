@@ -94,23 +94,18 @@ object HesehusSpecification extends Commands {
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
-    if (state.indices.isEmpty) {
-      Gen.frequency(
-        (10, CreateIndex()),
-        (5, GetIndices()),
-        (5, GetAlias()),
-        (5, genCreateIndexing(state))
-      )
-    } else {
-      Gen.frequency(
-        (10, CreateIndex()),
-        (5, GetIndices()),
-        (5, GetAlias()),
-        (5, genRemoveIndex(state)),
-        (5, genPutAlias(state)),
-        (5, genCreateIndexing(state))
+    var cmds = Seq[Gen[Command]]()
+    cmds = cmds ++ Seq[Gen[Command]](
+      Gen.const(GetAlias()),
+      genCreateIndexing(state)
+    )
+    if (state.indices.nonEmpty) {
+      cmds = cmds ++ Seq[Gen[Command]](
+        genRemoveIndex(state),
+        genPutAlias(state)
       )
     }
+    Gen.oneOf(Gen.const(CreateIndex()), Gen.const(GetIndices()), cmds: _*)
   }
 
   case class CreateIndex() extends Command {
