@@ -72,7 +72,7 @@ object HesehusSpecification extends Commands {
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     for {
-      json <- JsonGenerator.genPostIndexingJson
+      json <- JsonGen.genPostIndexingJson
     } yield CreateIndexing(json)
   }
 
@@ -82,7 +82,7 @@ object HesehusSpecification extends Commands {
 
   def genPutIndexing(state: State): Gen[PutIndexing] = {
     for {
-      json <- JsonGenerator.genPostIndexingJson
+      json <- JsonGen.genPostIndexingJson
       product <- Gen.oneOf(state.products)
     } yield PutIndexing(json ++ Json.obj("id" -> product.value("id"))) // json.value("id") = product.value("id") ???
   }

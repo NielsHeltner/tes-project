@@ -2,7 +2,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json._
 
-object JsonGenerator {
+object JsonGen {
 
   def genAttribute: Gen[JsObject] = for {
     attributeKey <- genSizedString(max = 50)
