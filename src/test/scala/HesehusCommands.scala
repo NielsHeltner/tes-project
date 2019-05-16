@@ -96,12 +96,12 @@ object HesehusSpecification extends Commands {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     for {
       json <- JsonGenerator.genJson(body)
-      product <- Gen.oneOf(state.products)
+      product <- Gen.oneOf(state.indices(state.alias.head).toSeq)
     } yield PutIndexing(json ++ Json.obj("id" -> product.value("id")))
   }
 
   def genRemoveIndexing(state: State): Gen[RemoveIndexing] = {
-    Gen.oneOf(state.products).map(RemoveIndexing)
+    Gen.oneOf(state.indices(state.alias.head).toSeq).map(RemoveIndexing)
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
@@ -318,9 +318,9 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
     override def nextState(state: State): State = {
-      val toReplace = state.products.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      val toReplace = state.indices(state.alias.head).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
       if (toReplace.isDefined) {
-        state.copy(products = state.products.filterNot(_ == toReplace.get) :+ product)
+        state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + toReplace.get)))
       } else {
         state
       }
@@ -359,13 +359,6 @@ object HesehusSpecification extends Commands {
     }
   }
 
-
-  def sortJs(js: JsValue): JsValue = js match {
-    case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
-    case JsArray(array) => JsArray(array.map(e => sortJs(e)))
-    case other => other
-  }
-
   case class RemoveIndexing(product: JsObject) extends Command {
 
     override type Result = Int
@@ -373,9 +366,9 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
 
     override def nextState(state: State): State = {
-      val toReplace = state.products.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      val toReplace = state.indices(state.alias.head).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
       if (toReplace.isDefined) {
-        state.copy(products = state.products.filterNot(_ == toReplace.get))
+        state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) - product)))
       } else {
         state
       }
@@ -391,6 +384,12 @@ object HesehusSpecification extends Commands {
       }
       success
     }
+  }
+
+  def sortJs(js: JsValue): JsValue = js match {
+    case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
+    case JsArray(array) => JsArray(array.map(e => sortJs(e)))
+    case other => other
   }
 }
 
