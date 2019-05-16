@@ -81,11 +81,10 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutIndexing(state: State): Gen[PutIndexing] = {
-    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     for {
-      json <- JsonGenerator.genJson(body)
+      json <- JsonGenerator.genPostIndexingJson
       product <- Gen.oneOf(state.products)
-    } yield PutIndexing(json ++ Json.obj("id" -> product.value("id")))
+    } yield PutIndexing(json ++ Json.obj("id" -> product.value("id"))) // json.value("id") = product.value("id") ???
   }
 
   def genRemoveIndexing(state: State): Gen[RemoveIndexing] = {
