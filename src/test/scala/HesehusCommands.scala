@@ -92,6 +92,18 @@ object HesehusSpecification extends Commands {
     yield GetProductIndex(index, product)
   }
 
+  def genPutIndexing(state: State): Gen[PutIndexing] = {
+    val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
+    for {
+      json <- JsonGenerator.genJson(body)
+      product <- Gen.oneOf(state.products)
+    } yield PutIndexing(json ++ Json.obj("id" -> product.value("id")))
+  }
+
+  def genRemoveIndexing(state: State): Gen[RemoveIndexing] = {
+    Gen.oneOf(state.products).map(RemoveIndexing)
+  }
+
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
@@ -282,9 +294,9 @@ object HesehusSpecification extends Commands {
 
     override type Result = JsObject
 
-    override def run(sut: Sut): Result = { sut.getIndexing(product.value("id").toString())}
+    override def run(sut: Sut): Result = sut.getIndexing(product.value("id").as[String])
 
-    override def nextState(state: State): State = { state }
+    override def nextState(state: State): State = state
 
     override def preCondition(state: State): Boolean = true
 
@@ -293,7 +305,7 @@ object HesehusSpecification extends Commands {
       val success = sortJs(product).toString() == sortJs(updated_result).toString()
       if (!success) {
         println("GetIndexing")
-        println("  " + result.get)
+        println("  " + Json.prettyPrint(result.get))
       }
       success
     }
@@ -305,7 +317,14 @@ object HesehusSpecification extends Commands {
 
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
-    override def nextState(state: State): State = state
+    override def nextState(state: State): State = {
+      val toReplace = state.products.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      if (toReplace.isDefined) {
+        state.copy(products = state.products.filterNot(_ == toReplace.get) :+ product)
+      } else {
+        state
+      }
+    }
 
     override def preCondition(state: State): Boolean = true
 
@@ -345,6 +364,33 @@ object HesehusSpecification extends Commands {
     case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
     case JsArray(array) => JsArray(array.map(e => sortJs(e)))
     case other => other
+  }
+
+  case class RemoveIndexing(product: JsObject) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
+
+    override def nextState(state: State): State = {
+      val toReplace = state.products.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      if (toReplace.isDefined) {
+        state.copy(products = state.products.filterNot(_ == toReplace.get))
+      } else {
+        state
+      }
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("RemoveIndexing")
+        println("  " + result.get)
+      }
+      success
+    }
   }
 }
 
