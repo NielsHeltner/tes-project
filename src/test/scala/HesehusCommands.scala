@@ -47,8 +47,8 @@ object HesehusSpecification extends Commands {
       size <- Gen.choose(0, 10)
     } yield 0.to(size).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
 
-    def genInitialAlias(indices: List[String]): Gen[String] = {
-      Gen.oneOf(indices)
+    def genInitialAlias(indices: List[String]): Gen[List[String]] = {
+      Gen.listOfN(1, Gen.oneOf(indices))
     }
 
     for {
@@ -58,7 +58,7 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
-      Gen.oneOf(state.indices).map(PutAlias)
+    Gen.listOfN(1, Gen.oneOf(state.indices)).map(PutAlias)
   }
 
   def genRemoveIndex(state: State): Gen[RemoveIndex] = {
@@ -191,7 +191,7 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = !(result.get.size > 1) && state.alias == result.get.head
+      val success = !(result.get.size > 1) && result.get.sorted == state.alias.sorted
       if (!success) {
         println("GetAlias")
         println("  State: " + state.alias)
@@ -201,7 +201,7 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  case class PutAlias(indices: String) extends Command {
+  case class PutAlias(indices: List[String]) extends Command {
 
     override type Result = Int
 
