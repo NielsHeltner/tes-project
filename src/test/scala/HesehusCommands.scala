@@ -2,6 +2,7 @@ import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 
+import scala.collection.immutable
 import scala.util.Try
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
@@ -43,12 +44,12 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    def genInitialIndices: Gen[List[String]] = for {
+    def genInitialIndices: Gen[immutable.HashMap[String, immutable.Set[JsObject]]] = for {
       size <- Gen.choose(0, 10)
-    } yield 0.to(size).foldLeft(List[String]())((acc, _) => acc :+ new HesehusApi().createIndex._1)
+    } yield 0.to(size).foldLeft(new immutable.HashMap[String, immutable.Set[JsObject]])((acc, _) => acc + (new HesehusApi().createIndex._1 -> new immutable.HashSet[JsObject]()))
 
-    def genInitialAlias(indices: List[String]): Gen[List[String]] = {
-      Gen.listOfN(1, Gen.oneOf(indices))
+    def genInitialAlias(indices: immutable.HashMap[String, immutable.Set[JsObject]]): Gen[List[String]] = {
+      Gen.listOfN(1, Gen.oneOf(indices.keys.toSeq))
     }
 
     for {
@@ -58,11 +59,11 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
-    Gen.listOfN(1, Gen.oneOf(state.indices)).map(PutAlias)
+    Gen.listOfN(1, Gen.oneOf(state.indices.keys.toSeq)).map(PutAlias)
   }
 
   def genRemoveIndex(state: State): Gen[RemoveIndex] = {
-    Gen.oneOf(state.indices).map(RemoveIndex)
+    Gen.oneOf(state.indices.keys.toSeq).map(RemoveIndex)
   }
 
   def genSearch(state: State): Gen[PostSearch] = {
@@ -80,7 +81,7 @@ object HesehusSpecification extends Commands {
   }
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {
-    Gen.oneOf(state.products).map(GetIndexing)
+    Gen.oneOf(state.indices(state.alias.head).toSeq).map(GetIndexing)
   }
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
@@ -90,8 +91,8 @@ object HesehusSpecification extends Commands {
       Gen.frequency(
         (10, CreateIndex()),
         (5, GetIndices()),
-        (5, GetAlias()),
-        (5, genCreateIndexing(state))
+        (5, GetAlias())
+        //(5, genCreateIndexing(state))
       )
     }
     else {
@@ -99,9 +100,9 @@ object HesehusSpecification extends Commands {
         (10, CreateIndex()),
         (5, GetIndices()),
         (5, GetAlias()),
-        (5, genRemoveIndex(state))
+        (5, genRemoveIndex(state)),
         //(5, genCreateIndexing(state)),
-        //(5, genPutAlias(state)),
+        (5, genPutAlias(state))
         //(10, genSearch(state))
       )
     }
@@ -123,7 +124,7 @@ object HesehusSpecification extends Commands {
         state
       }
       else {
-        state.copy(indices = state.indices :+ response._1)
+        state.copy(indices = state.indices + (response._1 -> new immutable.HashSet[JsObject]()))
       }
     }
 
@@ -150,11 +151,11 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = state.indices.sorted == result.get.sorted
+      val success = state.indices.keys.toSeq.sorted == result.get.sorted
       if (!success) {
         println("GetIndices")
-        println("  State: " + state.indices)
-        println("  API: " + result.get)
+        println("  State: " + state.indices + "\n")
+        println("  API: " + result.get + "\n")
       }
       success
     }
@@ -166,7 +167,7 @@ object HesehusSpecification extends Commands {
 
     override def run(sut: Sut): Result = sut.removeIndex(index)
 
-    override def nextState(state: State): State = state.copy(indices = state.indices.filterNot(_ == index), alias = state.alias.filterNot(_ == index))
+    override def nextState(state: State): State = state.copy(indices = state.indices - index, alias = state.alias.filterNot(_ == index))
 
     override def preCondition(state: State): Boolean = state.indices.contains(index)
 
@@ -233,7 +234,7 @@ object HesehusSpecification extends Commands {
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val searchFilter = new SearchFilter
-      val filteredProducts = searchFilter.filter(generatedJson, state.products)
+      val filteredProducts = searchFilter.filter(generatedJson, state.indices(state.alias.head).toSeq)
       val sortedResult = result.get.sorted
       val success = filteredProducts.size == result.get.size &&
         filteredProducts.indices.count(index => filteredProducts(index).as[JsObject].value("id").as[String] != sortedResult(index)) == 0
@@ -253,7 +254,7 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.createIndexing(product)
 
     override def nextState(state: State): State = {
-      state.copy(products = state.products :+ product)
+      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
     }
 
     override def preCondition(state: State): Boolean = true
