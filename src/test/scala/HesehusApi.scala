@@ -46,7 +46,10 @@ class HesehusApi {
   def createIndexing(product: JsObject): Int = {
     println(Json.prettyPrint(product))
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
-    request.asString.code
+    val response = request.asString
+
+    println(Json.prettyPrint(Json.parse(response.body)))
+    response.code
   }
 
   def getIndexing(index: String): JsObject = {
