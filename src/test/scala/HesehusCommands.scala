@@ -96,13 +96,24 @@ object HesehusSpecification extends Commands {
   override def genCommand(state: State): Gen[Command] = {
     var cmds = Seq[Gen[Command]]()
     cmds = cmds ++ Seq[Gen[Command]](
-      Gen.const(GetAlias()),
-      genCreateIndexing(state)
+      Gen.const(GetAlias())
     )
     if (state.indices.nonEmpty) {
       cmds = cmds ++ Seq[Gen[Command]](
         genRemoveIndex(state),
         genPutAlias(state)
+      )
+    }
+    if (state.alias.nonEmpty) {
+      cmds = cmds ++ Seq[Gen[Command]] (
+        genCreateIndexing(state)
+      )
+    }
+    if (state.products.nonEmpty) {
+      cmds = cmds ++ Seq[Gen[Command]] (
+        genGetIndexing(state),
+        genPutIndexing(state),
+        genRemoveIndexing(state)
       )
     }
     Gen.oneOf(Gen.const(CreateIndex()), Gen.const(GetIndices()), cmds: _*)
