@@ -71,6 +71,11 @@ class HesehusApi {
     Json.parse(response.body).as[JsObject]
   }
 
+  def deleteProductIndex(index: String, productId: String): Int = {
+    val request = delete(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    request.asString.code
+  }
+
   def postSearch(generatedJson: JsObject): List[String] =  {
     //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
     //val generatedJson = JsonGenerator.parseJsObject(body)

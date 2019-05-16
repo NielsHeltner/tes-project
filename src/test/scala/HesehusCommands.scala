@@ -1,3 +1,4 @@
+import HesehusSpecification.State
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -84,14 +85,6 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices(state.alias.head).toSeq).map(GetIndexing)
   }
 
-  def genGetProductIndex(state: State): Gen[GetProductIndex] = {
-    for {
-      index <- Gen.oneOf(state.indices.keys.toSeq)
-      product <- Gen.oneOf(state.indices(index).toSeq)
-    }
-    yield GetProductIndex(index, product)
-  }
-
   def genPutIndexing(state: State): Gen[PutIndexing] = {
     val body = Json.parse(getClass.getResourceAsStream("postIndexingBody.json")).as[JsObject]
     for {
@@ -104,6 +97,22 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices(state.alias.head).toSeq).map(RemoveIndexing)
   }
 
+  def genGetProductIndex(state: State): Gen[GetProductIndex] = {
+    for {
+      index <- Gen.oneOf(state.indices.keys.toSeq)
+      product <- Gen.oneOf(state.indices(index).toSeq)
+    }
+      yield GetProductIndex(index, product)
+  }
+
+  def genDeleteProductIndex(state: State): Gen[DeleteProductIndex] = {
+    for {
+      index <- Gen.oneOf(state.indices.keys.toSeq)
+      product <- Gen.oneOf(state.indices(index).toSeq)
+    }
+      yield DeleteProductIndex(index, product)
+  }
+
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
@@ -111,8 +120,8 @@ object HesehusSpecification extends Commands {
       Gen.frequency(
         (10, CreateIndex()),
         (5, GetIndices()),
-        (5, GetAlias())
-        //(5, genCreateIndexing(state))
+        (5, GetAlias()),
+        (5, genCreateIndexing(state))
       )
     }
     else {
@@ -120,10 +129,10 @@ object HesehusSpecification extends Commands {
         (10, CreateIndex()),
         (5, GetIndices()),
         (5, GetAlias()),
-        (5, genRemoveIndex(state)),
-        //(5, genCreateIndexing(state)),
-        (5, genGetProductIndex(state)),
-        (5, genPutAlias(state))
+        //(5, genRemoveIndex(state)),
+        (5, genCreateIndexing(state)),
+        (5, genGetProductIndex(state))
+        //(5, genPutAlias(state))
         //(10, genSearch(state))
       )
     }
@@ -338,6 +347,33 @@ object HesehusSpecification extends Commands {
     }
   }
 
+  case class RemoveIndexing(product: JsObject) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
+
+    override def nextState(state: State): State = {
+      val toReplace = state.indices(state.alias.head).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      if (toReplace.isDefined) {
+        state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) - product)))
+      } else {
+        state
+      }
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("RemoveIndexing")
+        println("  " + result.get)
+      }
+      success
+    }
+  }
+
   case class GetProductIndex(index: String, product: JsObject) extends Command {
 
     override type Result = JsObject
@@ -359,16 +395,16 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  case class RemoveIndexing(product: JsObject) extends Command {
+  case class DeleteProductIndex(index: String, product: JsObject) extends Command {
 
     override type Result = Int
 
-    override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
+    override def run(sut: Sut): Result = { sut.deleteProductIndex(index, product.value("id").toString()) }
 
     override def nextState(state: State): State = {
-      val toReplace = state.indices(state.alias.head).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      val toReplace = state.indices(index).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
       if (toReplace.isDefined) {
-        state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) - product)))
+        state.copy(indices = state.indices + (index -> (state.indices(index) - product)))
       } else {
         state
       }
