@@ -45,8 +45,8 @@ object HesehusSpecification extends Commands {
     */
   override def genInitialState: Gen[State] = {
     def genInitialIndices: Gen[immutable.HashMap[String, immutable.Set[JsObject]]] = for {
-      size <- Gen.choose(0, 10)
-    } yield 0.to(size).foldLeft(new immutable.HashMap[String, immutable.Set[JsObject]])((acc, _) => acc + (new HesehusApi().createIndex._1 -> new immutable.HashSet[JsObject]()))
+      size <- Gen.choose(1, 10)
+    } yield 1.to(size).foldLeft(new immutable.HashMap[String, immutable.Set[JsObject]])((acc, _) => acc + (new HesehusApi().createIndex._1 -> new immutable.HashSet[JsObject]()))
 
     def genInitialAlias(indices: immutable.HashMap[String, immutable.Set[JsObject]]): Gen[List[String]] = {
       Gen.listOfN(1, Gen.oneOf(indices.keys.toSeq))
@@ -55,7 +55,10 @@ object HesehusSpecification extends Commands {
     for {
       indices <- genInitialIndices
       alias <- genInitialAlias(indices)
-    } yield Model(indices = indices, alias = alias)
+    } yield {
+      new HesehusApi().putAlias(alias)
+      Model(indices = indices, alias = alias)
+    }
   }
 
   def genPutAlias(state: State): Gen[PutAlias] = {
@@ -66,12 +69,12 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices.keys.toSeq).map(RemoveIndex)
   }
 
-  def genSearch(state: State): Gen[PostSearch] = {
+  /*def genSearch(state: State): Gen[PostSearch] = {
     val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
     for {
-      json <- JsonGenerator.genJson(body)
+      json <- JsonGen.genJson(body)
     } yield PostSearch(json)
-  }
+  }*/
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     for {
@@ -116,19 +119,18 @@ object HesehusSpecification extends Commands {
     if (state.indices.isEmpty) {
       Gen.frequency(
         (10, CreateIndex()),
-        (5, GetIndices()),
-        (5, GetAlias()),
-        (5, genCreateIndexing(state))
+        (5, GetIndices())
+        //(5, GetAlias())
       )
     }
     else {
       Gen.frequency(
         (10, CreateIndex()),
         (5, GetIndices()),
-        (5, GetAlias()),
+        //(5, GetAlias()),
         //(5, genRemoveIndex(state)),
-        (5, genCreateIndexing(state)),
-        (5, genGetProductIndex(state))
+        (5, genCreateIndexing(state))
+        //(5, genGetProductIndex(state))
         //(5, genPutAlias(state))
         //(10, genSearch(state))
       )
@@ -171,7 +173,9 @@ object HesehusSpecification extends Commands {
 
     override type Result = List[String]
 
-    override def run(sut: Sut): Result = sut.getIndices
+    override def run(sut: Sut): Result = {
+      sut.getIndices
+    }
 
     override def nextState(state: State): State = state
 
@@ -278,10 +282,12 @@ object HesehusSpecification extends Commands {
 
     override type Result = Int
 
-    override def run(sut: Sut): Result = sut.createIndexing(product)
+    override def run(sut: Sut): Result = {
+      sut.createIndexing(product)
+    }
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
+      state//state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
     }
 
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
@@ -435,7 +441,7 @@ object Runner extends Properties("Hesehus") {
 
   property("HesehusCommands") = {
     testRuns += 1
-    println("Test run number " + testRuns)
+    println("\nTest run number " + testRuns)
     HesehusSpecification.property()
   }
 

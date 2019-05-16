@@ -47,8 +47,8 @@ class HesehusApi {
     println(Json.prettyPrint(product))
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
     val response = request.asString
-
-    println(Json.prettyPrint(Json.parse(response.body)))
+    println("Response:\n" + response.body + "\n")
+    //println(Json.prettyPrint(Json.parse(response.body)))
     response.code
   }
 
