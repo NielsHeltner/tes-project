@@ -4,94 +4,118 @@ import play.api.libs.json._
 
 object JsonGenerator {
 
-  def genJson[T <: JsValue](js: JsValue, acc: T = JsObject.empty): Gen[T] = {
-    Gen.const(parseJson(js, acc))
+  def genAttribute: Gen[JsObject] = for {
+    attributeKey <- genSizedString(max = 50)
+    name <- genSizedString(max = 50)
+    values <- Gen.nonEmptyListOf(for {
+      id <- genSizedString(max = 50)
+      value <- genSizedString()
+    } yield Json.obj("id" -> id, "value" -> value))
+  } yield Json.obj("attributeKey" -> attributeKey, "name" -> name, "values" -> values)
+
+  def genPostIndexingJson: Gen[JsObject] = for {
+    id <- genSizedString(max = 50)
+    alternativeIds <- Gen.nonEmptyListOf(genSizedString(max = 50))
+    productNumber <- genSizedString(max = 50)
+    dataAge <- genDate()
+    name <- genSizedString(max = 255)
+    categories <- Gen.nonEmptyListOf(for {
+      categoryId <- genSizedString(max = 50)
+      name <- genSizedString(max = 255)
+    } yield Json.obj("categoryId" -> categoryId, "name" -> name)
+    )
+    stockKeepingUnits <- Gen.nonEmptyListOf(for {
+      id <- genSizedString(max = 50)
+      skuNo <- genSizedString(max = 255)
+      ean <- genSizedString(max = 13)
+      name <- genSizedString(max = 255)
+      attributes <- Gen.nonEmptyListOf(genAttribute)
+      metaData <- genSizedString()
+    } yield Json.obj(
+        "id" -> id,
+        "skuNo" -> skuNo,
+        "ean" -> ean,
+        "name" -> name,
+        "attributes" -> attributes,
+        "metaData" -> metaData
+      )
+    )
+    media <- Gen.nonEmptyListOf(for {
+      _type <- genInt(3)
+      url <- genSizedString()
+      metaData <- genSizedString()
+    } yield Json.obj("type" -> _type, "url" -> url, "metaData" -> metaData)
+    )
+    prices <- for {
+      currency <- genSizedString(max = 3)
+      defaultPrice <- genDouble()
+      salesPrices <- Gen.nonEmptyListOf(for {
+        priceGroupId <- genSizedString()
+        price <- genDouble()
+        offerTimeFromInclusive <- genDate()
+        offerTimeFromExclusive <- genDate(offerTimeFromInclusive)
+      } yield Json.obj(
+          "priceGroupId" -> priceGroupId,
+          "price" -> price,
+          "offerTimeFromInclusive" -> offerTimeFromInclusive.toString,
+          "offerTimeFromExclusive" -> offerTimeFromExclusive.toString
+        )
+      )
+    } yield Json.obj("currency" -> currency, "defaultPrice" -> defaultPrice, "salesPrices" -> salesPrices)
+    shortDescription <- genSizedString(max = 255)
+    longDescription <- genSizedString()
+    alternativeSearchWords <- Gen.nonEmptyListOf(genSizedString())
+    attributes <- Gen.nonEmptyListOf(genAttribute)
+    metaData <- genSizedString()
+    rating <- genDouble(max = 5.0d)
+    stock <- genDouble(max = 999999999999.99d)
+    activeFrom <- genDate()
+    activeTo <- genDate(activeFrom)
+  } yield Json.obj(
+      "id" -> id,
+      "alternativeIds" -> alternativeIds,
+      "productNumber" -> productNumber,
+      "dataAge" -> dataAge.toString,
+      "name" -> name,
+      "categories" -> Json.arr(categories),
+      "stockKeepingUnits" -> stockKeepingUnits,
+      "media" -> media,
+      "prices" -> prices,
+      "shortDescription" -> shortDescription,
+      "longDescription" -> longDescription,
+      "alternativeSearchWords" -> alternativeSearchWords,
+      "attributes" -> attributes,
+      "metaData" -> metaData,
+      "rating" -> rating,
+      "stock" -> stock,
+      "activeFrom" -> activeFrom.toString,
+      "activeTo" -> activeTo.toString
+    )
+
+  def genSizedString(min: Int = 1, max: Int = Int.MaxValue): Gen[String] = {
+    Gen.asciiPrintableStr.retryUntil(string => string.length >= min && string.length <= max)
   }
 
-  private def parseJson[T <: JsValue](js: JsValue, acc: T = JsObject.empty, key: String = ""): T = {
-    val value: JsValue = js match {
-      case arr: JsArray =>
-        arr.value.foldLeft(JsArray.empty)((jsArr, value) =>
-          parseJson(value, jsArr).as[JsArray])
-      case obj: JsObject =>
-        obj.keys.foldLeft(JsObject.empty)((jsObj, key) =>
-          parseJson(obj.value(key), jsObj, key).as[JsObject])
-      case number: JsNumber =>
-        JsNumber(generateNumber(number))
-      case string: JsString =>
-        JsString(genString(string).sample.get)
-      case _: JsBoolean =>
-        JsBoolean(generateBoolean)
-      case _ =>
-        println("ERROR - Could not parse JS value")
-        JsNull
-    }
+  def genDate(fromDate: DateTime = new DateTime(-62135751600000L).withZone(DateTimeZone.UTC)): Gen[DateTime] = for {
+      date <- Gen.calendar.map(new DateTime(_).withZone(DateTimeZone.UTC)).retryUntil(date => date.getYear > 0 && date.getYear < 10000 && date.isAfter(fromDate))
+    } yield date
 
-    acc match {
-      case arr: JsArray =>
-        (arr :+ value).asInstanceOf[T]
-      case obj: JsObject =>
-        if (key.isEmpty) {
-          value.asInstanceOf[T]
-        }
-        else {
-          (obj ++ Json.obj(key -> value)).asInstanceOf[T]
-        }
-      case _ =>
-        println("ERROR - Could not parse JS value")
-        JsNull.asInstanceOf[T]
-    }
-  }
+  def genDouble(max: Double = 9999999999999.99d): Gen[BigDecimal] = for {
+    value <- Gen.frequency(
+      (8, Gen.chooseNum(0.0d, max)), // stock max = 999999999999.99d (9.99e+11) -- price max = 9999999999999.99d (9.99e+12)
+      (1, Gen.oneOf(0.0d, max))
+    ).retryUntil(_ >= 0.0d)
+  } yield BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP)
 
-  def genString(jsString : JsString): Gen[String] = {
+  def genInt(max: Int = Int.MaxValue): Gen[Int] = for {
+    value <- Gen.frequency(
+      (8, Gen.chooseNum(0, max)),
+      (1, Gen.oneOf(0, 1, max))
+    ).retryUntil(_ >= 0)
+  } yield value
 
-    def genSizedString(size: Int = Int.MaxValue): Gen[String] = {
-      Gen.asciiPrintableStr.map(string => if (string.length > size) string.substring(0, size) else string)
-    }
-
-    def genDate: Gen[String] = {
-      val date = Gen.calendar.sample.get
-      new DateTime(date).withZone(DateTimeZone.UTC).toString
-    }
-
-    if (jsString.value == "date") {
-      genDate
-    }
-    else if (jsString.value.isEmpty) {
-      genSizedString()
-    }
-    else {
-      val size = jsString.value.toInt
-      genSizedString(size)
-    }
-  }
-
-  def generateNumber(jsNum: JsNumber): Double = {
-
-    def generateDouble: Double = {
-      Gen.frequency(
-        (8, Gen.chooseNum(Double.MinValue, Double.MaxValue)),
-        (1, Gen.oneOf(Double.MinValue, -0.99d, 0.0d, 0.99d, Double.MaxValue))
-      ).sample.get.asInstanceOf[Double]
-    }
-
-    def generateInteger: Int = {
-      Gen.frequency(
-        (8, Gen.chooseNum(Int.MinValue, Int.MaxValue)),
-        (1, Gen.oneOf(Int.MinValue, -1, 0, 1, Int.MaxValue))
-      ).sample.get.asInstanceOf[Int]
-    }
-
-    if (jsNum.value.isValidInt) {
-      generateInteger
-    }
-    else { //jsNum.value.isDecimalDouble
-      generateDouble
-    }
-  }
-
-  def generateBoolean: Boolean = {
-    Arbitrary.arbBool.arbitrary.sample.get
+  def genBoolean: Gen[Boolean] = {
+    Arbitrary.arbBool.arbitrary
   }
 
 }
