@@ -94,7 +94,7 @@ object JsonGen {
 
   def genSizedString(min: Int = 1, max: Int = Int.MaxValue): Gen[String] = {
     Gen.asciiPrintableStr.retryUntil(string => string.length >= min && string.length <= max && !string.trim.isEmpty &&
-      !string.trim.startsWith("[") && !string.trim.startsWith("]") && !string.trim.endsWith("[") && !string.trim.endsWith("]"))
+      !string.trim.startsWith(".") && !string.trim.endsWith("."))
   }
 
   def genDate(fromDate: DateTime = new DateTime(-62135751600000L).withZone(DateTimeZone.UTC)): Gen[DateTime] = for {
