@@ -120,6 +120,14 @@ object HesehusSpecification extends Commands {
       yield DeleteProductIndex(index, product)
   }
 
+  def genGetBulk(state: State, indices: Seq[String]): Gen[GetBulk] = {
+    for {
+      index <- Gen.oneOf(indices)
+      product <- Gen.atLeastOne(state.indices(index).toSeq)
+    }
+      yield GetBulk(index, product)
+  }
+
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
@@ -136,7 +144,8 @@ object HesehusSpecification extends Commands {
       if (state.containsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
           genGetProductIndex(state, state.indicesWithProducts),
-          genDeleteProductIndex(state, state.indicesWithProducts)
+          genDeleteProductIndex(state, state.indicesWithProducts),
+          genGetBulk(state, state.indicesWithProducts)
         )
       }
     }
@@ -506,6 +515,54 @@ object HesehusSpecification extends Commands {
           println("Alias: " + state.alias)
           println("  API:   " + Json.prettyPrint(updatedResult))
           println("  State: " + Json.prettyPrint(product))
+        }
+        success
+      }
+    }
+  }
+
+  case class GetBulk(index: String, products: Seq[JsObject]) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = {
+      sut.getBulk(index, products.map(jsObject => jsObject.value("id").as[String]))
+    }
+
+    override def nextState(state: State): State = state
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      if (result.get.code != 200) {
+        println("Get bulk")
+        println(Json.prettyPrint(Json.parse(result.get.body)))
+        false
+      }
+      else {
+        val updatedResults = Json.parse(result.get.body).as[List[JsObject]]
+        updatedResults.foreach(product => product - "isInStock")
+
+        //val success = sortJs(product).toString() == sortJs(updatedResult).toString()
+        val succ1 = products.size == updatedResults.size
+        if (!succ1) {
+          println(s"same size: $succ1")
+          println(s"  state size: ${products.size}")
+          println(s"  api size: ${updatedResults.size}")
+          if (updatedResults.size == 2) {
+            updatedResults.foreach(println(_))
+          }
+        }
+        //val succ2 = product.value.keys.forall(key => product.value(key) == updatedResult.value(key))
+        val succ2 = products.map(product => product.value("id").as[String]).sorted == updatedResults.map(product => product.value("id").as[String]).sorted
+        val success = succ1 && succ2
+        if (!success) {
+          println("GetIndexing")
+          /*println(s"same keys? $succ2")
+          product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
+          println("Alias: " + state.alias)
+          println("  API:   " + Json.prettyPrint(updatedResults))
+          println("  State: " + Json.prettyPrint(product))*/
         }
         success
       }

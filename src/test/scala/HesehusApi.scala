@@ -86,6 +86,12 @@ class HesehusApi {
     request.asString
   }
 
+  def getBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
+    println("Bulk get : " + Json.stringify(Json.toJson(productIds)))
+    val request = post(s"/api/productsearch/v1/Bulk/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
   def postSearch(generatedJson: JsObject): List[String] =  {
     //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
     //val generatedJson = JsonGenerator.parseJsObject(body)
