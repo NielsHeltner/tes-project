@@ -104,33 +104,41 @@ object HesehusSpecification extends Commands {
     } yield PostProductIndex(index, product)
   }
 
-  def genGetProductIndex(state: State, indices: Seq[String]): Gen[GetProductIndex] = {
+  def genGetProductIndex(state: State): Gen[GetProductIndex] = {
     for {
-      index <- Gen.oneOf(indices)
+      index <- Gen.oneOf(state.indicesWithProducts)
       product <- Gen.oneOf(state.indices(index).toSeq)
     }
       yield GetProductIndex(index, product)
   }
 
-  def genDeleteProductIndex(state: State, indices: Seq[String]): Gen[DeleteProductIndex] = {
+  def genDeleteProductIndex(state: State): Gen[DeleteProductIndex] = {
     for {
-      index <- Gen.oneOf(indices)
+      index <- Gen.oneOf(state.indicesWithProducts)
       product <- Gen.oneOf(state.indices(index).toSeq)
     }
       yield DeleteProductIndex(index, product)
   }
 
-  def genGetBulk(state: State, indices: Seq[String]): Gen[GetBulk] = {
+  def genUpsertBulk(state: State): Gen[UpsertBulk] = {
     for {
-      index <- Gen.oneOf(indices)
+      index <- Gen.oneOf(state.indicesWithProducts)
+      product <- Gen.atLeastOne(state.indices(index).toSeq)
+    }
+      yield UpsertBulk(index, product)
+  }
+
+  def genGetBulk(state: State): Gen[GetBulk] = {
+    for {
+      index <- Gen.oneOf(state.indicesWithProducts)
       product <- Gen.atLeastOne(state.indices(index).toSeq)
     }
       yield GetBulk(index, product)
   }
 
-  def genDeleteBulk(state: State, indices: Seq[String]): Gen[DeleteBulk] = {
+  def genDeleteBulk(state: State): Gen[DeleteBulk] = {
     for {
-      index <- Gen.oneOf(indices)
+      index <- Gen.oneOf(state.indicesWithProducts)
       product <- Gen.atLeastOne(state.indices(index).toSeq)
     }
       yield DeleteBulk(index, product)
@@ -147,14 +155,15 @@ object HesehusSpecification extends Commands {
       cmds = cmds ++ Seq[Gen[Command]](
         genRemoveIndex(state),
         genPutAlias(state),
-        genPostProductIndex(state)
+        genPostProductIndex(state),
+        genUpsertBulk(state)
       )
       if (state.containsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
-          genGetProductIndex(state, state.indicesWithProducts),
-          genDeleteProductIndex(state, state.indicesWithProducts),
-          genGetBulk(state, state.indicesWithProducts),
-          genDeleteBulk(state, state.indicesWithProducts)
+          genGetProductIndex(state),
+          genDeleteProductIndex(state),
+          genGetBulk(state),
+          genDeleteBulk(state)
         )
       }
     }
@@ -565,6 +574,33 @@ object HesehusSpecification extends Commands {
     }
   }
 
+  case class UpsertBulk(index: String, products: Seq[JsObject]) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = {
+      sut.upsertBulk(index, products)
+    }
+
+    override def nextState(state: State): State = {
+      val productIdsToDelete = products.map(jsObject => jsObject.value("id").as[String])
+      state.copy(indices = state.indices + (index -> state.indices(index).filterNot(product => productIdsToDelete.contains(product.value("id").as[String])).++(products.toSet)))
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get.code == 200
+      if (!success) {
+        println("Upsert Bulk")
+        //println(Json.prettyPrint(products))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        //println("product id " + product.value("id"))
+      }
+      success
+    }
+  }
 
   case class GetBulk(index: String, products: Seq[JsObject]) extends Command {
 
