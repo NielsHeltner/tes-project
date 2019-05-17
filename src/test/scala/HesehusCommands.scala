@@ -100,7 +100,7 @@ object HesehusSpecification extends Commands {
   def genPostProductIndex(state: State): Gen[PostProductIndex] = {
     for {
       index <- Gen.oneOf(state.indices.keys.toSeq)
-      product <- JsonGen.genPostIndexingJson
+      product <- JsonGen.genSizedIndexingJson()
     } yield PostProductIndex(index, product)
   }
 
@@ -529,7 +529,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = state.aliasContainsProducts
+    override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get.code == 200
