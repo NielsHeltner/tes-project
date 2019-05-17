@@ -155,15 +155,15 @@ object HesehusSpecification extends Commands {
       cmds = cmds ++ Seq[Gen[Command]](
         genRemoveIndex(state),
         genPutAlias(state),
-        genPostProductIndex(state),
-        genUpsertBulk(state)
+        genPostProductIndex(state)
       )
       if (state.containsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
           genGetProductIndex(state),
           genDeleteProductIndex(state),
           genGetBulk(state),
-          genDeleteBulk(state)
+          genDeleteBulk(state),
+          genUpsertBulk(state)
         )
       }
     }
