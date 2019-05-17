@@ -13,4 +13,7 @@ case class Model(alias: Seq[String] = Seq[String](),
   def aliasContainsProducts: Boolean = {
     indices(alias.head).nonEmpty
   }
+
+  def currentIndices: Set[JsObject] = indices(alias.head)
+
 }
