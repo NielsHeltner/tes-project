@@ -13,7 +13,21 @@ object JsonGen {
     } yield Json.obj("id" -> id, "value" -> value))
   } yield Json.obj("attributeKey" -> attributeKey, "name" -> name, "values" -> values)
 
-  def genPostIndexingJson: Gen[JsObject] = for {
+  def genSizedIndexingJson(size: Int = 1001): Gen[JsObject] = {
+    genIndexingJson.retryUntil(json => {
+      val sz = allKeys(json).size
+      println("Sizze: " + sz)
+      sz <= size
+    })
+  }
+
+  def allKeys(json: JsValue): List[String] = json match {
+    case o: JsObject => o.keys.toList ++ o.values.flatMap(allKeys)
+    case arr: JsArray => arr.value.flatMap(allKeys).toList
+    case _ => List()
+  }
+
+  def genIndexingJson: Gen[JsObject] = for {
     id <- genSizedString(max = 50)
     alternativeIds <- Gen.nonEmptyListOf(genSizedString(max = 50))
     productNumber <- genSizedString(max = 50)
@@ -97,9 +111,11 @@ object JsonGen {
       !string.trim.startsWith(".") && !string.trim.endsWith("."))
   }
 
-  def genDate(fromDate: DateTime = new DateTime(-62135751600000L).withZone(DateTimeZone.UTC)): Gen[DateTime] = for {
-      date <- Gen.calendar.map(new DateTime(_).withZone(DateTimeZone.UTC)).retryUntil(date => date.getYear > 0 && date.getYear < 10000 && date.isAfter(fromDate))
-    } yield date
+  def genDate(fromDate: DateTime = new DateTime(-62135751600000L).withZone(DateTimeZone.UTC)): Gen[DateTime] = {
+    Gen.calendar.map(new DateTime(_).withZone(DateTimeZone.UTC))
+      .map(date => if (fromDate.getYear == 4000) fromDate.plusMillis(1) else date)
+      .retryUntil(date => date.getYear > 0 && date.getYear < 10000 && date.isAfter(fromDate))
+  }
 
   def genDouble(max: Double = 9999999999999.99d): Gen[BigDecimal] = for {
     value <- Gen.frequency(
