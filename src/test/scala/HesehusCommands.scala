@@ -97,9 +97,15 @@ object HesehusSpecification extends Commands {
     Gen.oneOf(state.indices(state.alias.head).toSeq).map(RemoveIndexing)
   }
 
+  def genPostProductIndex(state: State): Gen[PostProductIndex] = {
+    for {
+      index <- Gen.oneOf(state.indices.keys.toSeq)
+      product <- JsonGen.genPostIndexingJson
+    } yield PostProductIndex(index, product)
+  }
+
   def genGetProductIndex(state: State, indices: Seq[String]): Gen[GetProductIndex] = {
     for {
-      //index <- Gen.oneOf(state.indices.keys.toSeq)
       index <- Gen.oneOf(indices)
       product <- Gen.oneOf(state.indices(index).toSeq)
     }
@@ -108,7 +114,6 @@ object HesehusSpecification extends Commands {
 
   def genDeleteProductIndex(state: State, indices: Seq[String]): Gen[DeleteProductIndex] = {
     for {
-      //index <- Gen.oneOf(state.indices.keys.toSeq)
       index <- Gen.oneOf(indices)
       product <- Gen.oneOf(state.indices(index).toSeq)
     }
@@ -125,7 +130,8 @@ object HesehusSpecification extends Commands {
     if (state.indices.nonEmpty) {
       cmds = cmds ++ Seq[Gen[Command]](
         genRemoveIndex(state),
-        genPutAlias(state)
+        genPutAlias(state),
+        genPostProductIndex(state)
       )
       if (state.containsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
@@ -424,6 +430,34 @@ object HesehusSpecification extends Commands {
         if (result.get.body.nonEmpty)
           println(Json.prettyPrint(Json.parse(result.get.body)))
         println("product id " + product.value("id"))
+      }
+      success
+    }
+  }
+
+  case class PostProductIndex(index: String, product: JsObject) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = {
+      println(s"Created product ${product.value("id")} on $index" )
+      sut.postProductIndex(index, product)
+    }
+
+    override def nextState(state: State): State = {
+      state.copy(indices = state.indices + (index -> (state.indices(index).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get.code == 200
+      if (!success) {
+        println("Post Product Index")
+        //println("  " + result.get)
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
       }
       success
     }

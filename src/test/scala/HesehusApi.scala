@@ -1,5 +1,5 @@
 import Request._
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import scalaj.http.HttpResponse
 
 class HesehusApi {
@@ -68,6 +68,12 @@ class HesehusApi {
   def removeIndexing(index: String): HttpResponse[String] = {
     val request = delete(s"/api/productsearch/v1/Indexing/$index")
     request.asString
+  }
+
+  def postProductIndex(index: String, product: JsObject): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/ProductIndex/$index", Json.stringify(product))
+    val response = request.asString
+    response
   }
 
   def getProductIndex(index: String, productId: String): HttpResponse[String] = {
