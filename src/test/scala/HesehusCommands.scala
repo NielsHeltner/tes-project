@@ -100,7 +100,7 @@ object HesehusSpecification extends Commands {
   def genPostProductIndex(state: State): Gen[PostProductIndex] = {
     for {
       index <- Gen.oneOf(state.indices.keys.toSeq)
-      product <- JsonGen.genSizedIndexingJson()
+      product <- JsonGen.genIndexingJson()
     } yield PostProductIndex(index, product)
   }
 
