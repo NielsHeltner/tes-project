@@ -1,6 +1,7 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import scalaj.http.HttpResponse
 
 import scala.collection.immutable
 import scala.util.Try
@@ -132,9 +133,9 @@ object HesehusSpecification extends Commands {
       if (state.aliasContainsProducts) {
         println("Yo i got products!")
         cmds = cmds ++ Seq[Gen[Command]] (
-          genGetIndexing(state)
-          //genPutIndexing(state),
-          //genRemoveIndexing(state)
+          genGetIndexing(state),
+          genPutIndexing(state),
+          genRemoveIndexing(state)
         )
       }
     }
@@ -284,9 +285,10 @@ object HesehusSpecification extends Commands {
 
   case class CreateIndexing(product: JsObject) extends Command {
 
-    override type Result = Int
+    override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = {
+      println(s"Created indexing ${product.value("id")}")
       sut.createIndexing(product)
     }
 
@@ -297,10 +299,14 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = result.get == 200
+      val success = result.get.code == 200
       if (!success) {
         println("CreateIndexing")
-        println("  " + result.get)
+        //println("  " + result.get)
+        println("Alias: " + state.alias)
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
       }
       success
     }
@@ -308,7 +314,7 @@ object HesehusSpecification extends Commands {
 
   case class GetIndexing(product: JsObject) extends Command {
 
-    override type Result = JsObject
+    override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = sut.getIndexing(product.value("id").as[String])
 
@@ -317,21 +323,42 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val updated_result = result.get - "isInStock"
-      //val success = sortJs(product).toString() == sortJs(updated_result).toString()
-      val success = product.value("id") == updated_result.value("id")
-      if (!success) {
+      if (result.get.code != 200) {
         println("GetIndexing")
-        println("SUT:  " + Json.prettyPrint(sortJs(updated_result)))
-        println("STATE:  " + Json.prettyPrint(sortJs(product)))
+        println(Json.prettyPrint(Json.parse(result.get.body)))
+        false
       }
-      success
+      else {
+        val updatedResult = Json.parse(result.get.body).as[JsObject] - "isInStock"
+        //val success = sortJs(product).toString() == sortJs(updatedResult).toString()
+        val succ1 = product.value.size == updatedResult.value.size
+        if (!succ1) {
+          println(s"same size: $succ1")
+          println(s"  state size: ${product.value.size}")
+          println(s"  api size: ${updatedResult.value.size}")
+          if (updatedResult.value.size == 2) {
+            updatedResult.value.keys.foreach(println(_))
+          }
+        }
+        //val succ2 = product.value.keys.forall(key => product.value(key) == updatedResult.value(key))
+        val succ2 = product.value("id") == updatedResult.value("id")
+        val success = succ1 && succ2
+        if (!success) {
+          println("GetIndexing")
+          println(s"same keys? $succ2")
+          product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
+          println("Alias: " + state.alias)
+          println("  API:   " + Json.prettyPrint(updatedResult))
+          println("  State: " + Json.prettyPrint(product))
+        }
+        success
+      }
     }
   }
 
   case class PutIndexing(product: JsObject) extends Command {
 
-    override type Result = Int
+    override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
@@ -347,10 +374,16 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = result.get == 200
+      val success = result.get.code == 200
       if (!success) {
         println("PutIndexing")
-        println("  " + result.get)
+        println("Alias: " + state.alias)
+        //println("  " + result.get)
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        println(s"  State (size ${state.indices(state.alias.head).size}): ")
+        state.indices(state.alias.head).map(_.value("id")).foreach(println(_))
       }
       success
     }
@@ -358,7 +391,7 @@ object HesehusSpecification extends Commands {
 
   case class RemoveIndexing(product: JsObject) extends Command {
 
-    override type Result = Int
+    override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
 
@@ -374,10 +407,16 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = result.get == 200
+      println("RemoveIndexing")
+      val success = result.get.code == 200
       if (!success) {
         println("RemoveIndexing")
-        println("  " + result.get)
+        println("Alias: " + state.alias)
+        //println("  " + result.get)
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        println("product id " + product.value("id"))
       }
       success
     }
@@ -424,8 +463,8 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
       if (!success) {
-        println("Delete product Index")
-        println("  " + result.get)
+        println("DeleteProductIndex")
+        println(result.get)
       }
       success
     }

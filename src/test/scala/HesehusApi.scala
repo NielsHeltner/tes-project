@@ -1,5 +1,6 @@
 import Request._
 import play.api.libs.json.{JsArray, JsObject, Json}
+import scalaj.http.HttpResponse
 
 class HesehusApi {
 
@@ -43,29 +44,30 @@ class HesehusApi {
     request.asString.code
   }
 
-  def createIndexing(product: JsObject): Int = {
-    println(Json.prettyPrint(product))
+  def createIndexing(product: JsObject): HttpResponse[String] = {
+    //println(Json.prettyPrint(product))
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
     val response = request.asString
-    println("Response:\n" + response.body + "\n")
+
     //println(Json.prettyPrint(Json.parse(response.body)))
-    response.code
+    //println(response.body)
+    response
   }
 
-  def getIndexing(index: String): JsObject = {
+  def getIndexing(index: String): HttpResponse[String] = {
     val request = get(s"/api/productsearch/v1/Indexing/$index")
     val response = request.asString
-    Json.parse(response.body).as[JsObject]
+    response
   }
 
-  def putIndexing(product: JsObject): Int = {
+  def putIndexing(product: JsObject): HttpResponse[String] = {
     val request = put("/api/productsearch/v1/Indexing", Json.stringify(product))
-    request.asString.code
+    request.asString
   }
 
-  def removeIndexing(index: String): Int = {
+  def removeIndexing(index: String): HttpResponse[String] = {
     val request = delete(s"/api/productsearch/v1/Indexing/$index")
-    request.asString.code
+    request.asString
   }
 
   def getProductIndex(index: String, productId: String): JsObject = {
