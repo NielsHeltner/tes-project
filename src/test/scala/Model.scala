@@ -13,4 +13,8 @@ case class Model(alias: Seq[String] = Seq[String](),
   def aliasContainsProducts: Boolean = {
     indices(alias.head).nonEmpty
   }
+
+  def indicesWithProducts: Seq[String] = {
+    indices.filter(k=> k._2.nonEmpty).keys.toSeq
+  }
 }
