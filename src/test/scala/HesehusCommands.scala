@@ -56,7 +56,6 @@ object HesehusSpecification extends Commands {
       indices <- genInitialIndices
       alias <- genInitialAlias(indices)
     } yield {
-      //new HesehusApi().putAlias(alias)
       Model(indices = indices, alias = alias)
     }
   }
@@ -130,7 +129,7 @@ object HesehusSpecification extends Commands {
       cmds = cmds ++ Seq[Gen[Command]] (
         genCreateIndexing(state)
       )
-      if (state.containsProducts) {
+      if (state.aliasContainsProducts) {
         println("Yo i got products!")
         cmds = cmds ++ Seq[Gen[Command]] (
           genGetIndexing(state)
@@ -292,7 +291,7 @@ object HesehusSpecification extends Commands {
     }
 
     override def nextState(state: State): State = {
-      state//state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
+      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
     }
 
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
@@ -319,10 +318,12 @@ object HesehusSpecification extends Commands {
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val updated_result = result.get - "isInStock"
-      val success = sortJs(product).toString() == sortJs(updated_result).toString()
+      //val success = sortJs(product).toString() == sortJs(updated_result).toString()
+      val success = product.value("id") == updated_result.value("id")
       if (!success) {
         println("GetIndexing")
-        println("  " + Json.prettyPrint(result.get))
+        println("SUT:  " + Json.prettyPrint(sortJs(updated_result)))
+        println("STATE:  " + Json.prettyPrint(sortJs(product)))
       }
       success
     }

@@ -7,6 +7,10 @@ case class Model(alias: Seq[String] = Seq[String](),
                 ) {
 
   def containsProducts: Boolean = {
-    indices.values.flatten.toSeq.nonEmpty
+    indices.values.flatten.nonEmpty
+  }
+
+  def aliasContainsProducts: Boolean = {
+    indices(alias.head).nonEmpty
   }
 }
