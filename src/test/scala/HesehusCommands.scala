@@ -128,6 +128,14 @@ object HesehusSpecification extends Commands {
       yield GetBulk(index, product)
   }
 
+  def genDeleteBulk(state: State, indices: Seq[String]): Gen[DeleteBulk] = {
+    for {
+      index <- Gen.oneOf(indices)
+      product <- Gen.atLeastOne(state.indices(index).toSeq)
+    }
+      yield DeleteBulk(index, product)
+  }
+
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
   override def genCommand(state: State): Gen[Command] = {
@@ -145,16 +153,17 @@ object HesehusSpecification extends Commands {
         cmds = cmds ++ Seq[Gen[Command]](
           genGetProductIndex(state, state.indicesWithProducts),
           genDeleteProductIndex(state, state.indicesWithProducts),
-          genGetBulk(state, state.indicesWithProducts)
+          genGetBulk(state, state.indicesWithProducts),
+          genDeleteBulk(state, state.indicesWithProducts)
         )
       }
     }
     if (state.alias.nonEmpty) {
-      cmds = cmds ++ Seq[Gen[Command]] (
+      cmds = cmds ++ Seq[Gen[Command]](
         genCreateIndexing(state)
       )
       if (state.aliasContainsProducts) {
-        cmds = cmds ++ Seq[Gen[Command]] (
+        cmds = cmds ++ Seq[Gen[Command]](
           genGetIndexing(state),
           genPutIndexing(state),
           genRemoveIndexing(state)
@@ -455,7 +464,7 @@ object HesehusSpecification extends Commands {
     override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = {
-      println(s"Created product ${product.value("id")} on $index" )
+      println(s"Created product ${product.value("id")} on $index")
       sut.postProductIndex(index, product)
     }
 
@@ -524,6 +533,39 @@ object HesehusSpecification extends Commands {
     }
   }
 
+  case class DeleteProductIndex(index: String, product: JsObject) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = {
+      sut.deleteProductIndex(index, product.value("id").as[String])
+    }
+
+    override def nextState(state: State): State = {
+      val toDelete = state.indices(index).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      if (toDelete.isDefined) {
+        state.copy(indices = state.indices + (index -> (state.indices(index) - product)))
+      } else {
+        state
+      }
+    }
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get.code == 200
+      if (!success) {
+        println("DeleteProductIndex")
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        println("product id " + product.value("id"))
+      }
+      success
+    }
+  }
+
+
   case class GetBulk(index: String, products: Seq[JsObject]) extends Command {
 
     override type Result = HttpResponse[String]
@@ -572,21 +614,18 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  case class DeleteProductIndex(index: String, product: JsObject) extends Command {
+  case class DeleteBulk(index: String, products: Seq[JsObject]) extends Command {
 
     override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = {
-      sut.deleteProductIndex(index, product.value("id").as[String])
+      sut.deleteBulk(index, products.map(jsObject => jsObject.value("id").as[String]))
     }
 
     override def nextState(state: State): State = {
-      val toReplace = state.indices(index).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
-      if (toReplace.isDefined) {
-        state.copy(indices = state.indices + (index -> (state.indices(index) - product)))
-      } else {
-        state
-      }
+      val productIdsToDelete = products.map(jsObject => jsObject.value("id").as[String])
+
+      state.copy(indices = state.indices + (index -> state.indices(index).filterNot(product => productIdsToDelete.contains(product.value("id").as[String]))))
     }
 
     override def preCondition(state: State): Boolean = true
@@ -594,15 +633,16 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get.code == 200
       if (!success) {
-        println("DeleteProductIndex")
-        println(Json.prettyPrint(product))
+        println("Delete Bulk")
+        //println(Json.prettyPrint(products))
         if (result.get.body.nonEmpty)
           println(Json.prettyPrint(Json.parse(result.get.body)))
-        println("product id " + product.value("id"))
+        //println("product id " + product.value("id"))
       }
       success
     }
   }
+
 
   def sortJs(js: JsValue): JsValue = js match {
     case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
