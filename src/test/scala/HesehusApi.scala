@@ -6,7 +6,7 @@ class HesehusApi {
 
   def reset(): Unit = {
     println("Resetting SUT...")
-    putAlias(Seq[String]())
+    putAlias(List[String]())
     val indices = getIndices
     println("Removing " + indices.size + " indices...")
     indices.foreach(removeIndex)
@@ -69,4 +69,25 @@ class HesehusApi {
     val request = delete(s"/api/productsearch/v1/Indexing/$index")
     request.asString
   }
+
+  def getProductIndex(index: String, productId: String): JsObject = {
+    val request = get(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    val response = request.asString
+    Json.parse(response.body).as[JsObject]
+  }
+
+  def deleteProductIndex(index: String, productId: String): Int = {
+    val request = delete(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    request.asString.code
+  }
+
+  def postSearch(generatedJson: JsObject): List[String] =  {
+    //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
+    //val generatedJson = JsonGenerator.parseJsObject(body)
+    println(Json.prettyPrint(generatedJson))
+    val request = post("/api/productsearch/v1/Search", generatedJson.toString)
+    val response = request.asString
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
+  }
+
 }
