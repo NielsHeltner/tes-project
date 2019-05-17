@@ -651,19 +651,16 @@ object HesehusSpecification extends Commands {
       val filteredProducts = searchFilter.filter(generatedJson, state.currentIndices.toSeq)
       val returnedProducts = Json.parse(result.get.body).as[JsObject].value("productResults").as[List[JsObject]].map(jsObject => jsObject.value("product").as[JsObject])
       val returnedIdsSorted = returnedProducts.map(product => product.value("id").as[String]).sorted
-      println("  API counted size: " + returnedIdsSorted.size)
-      println("  API size: " + Json.parse(result.get.body).as[JsObject].value("totalProductResultsFound").as[Int])
-
 
       val success = filteredProducts.size == returnedIdsSorted.size &&
         filteredProducts.indices.count(index => filteredProducts(index).as[JsObject].value("id").as[String] != returnedIdsSorted(index)) == 0
       if (!success) {
         println("PostSearch")
         println("  Current alias: " + state.alias.head)
-        //println("  API counted size: " + returnedIdsSorted.size)
+        println("  API counted size: " + returnedIdsSorted.size)
+        println("  API size: " + Json.parse(result.get.body).as[JsObject].value("totalProductResultsFound").as[Int])
         println("  State size: " + filteredProducts.size)
         println("  State size in general: " + state.currentIndices.size)
-        //println("  API size: " + Json.parse(result.get.body).as[JsObject].value("totalProductResultsFound").as[Int])
         println("  Filter: " + Json.prettyPrint(generatedJson))
         println("  State: " + filteredProducts)
         println("  API: " + Json.parse(result.get.body).as[JsObject])
