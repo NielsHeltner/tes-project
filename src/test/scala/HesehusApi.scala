@@ -1,11 +1,12 @@
 import Request._
 import play.api.libs.json.{JsArray, JsObject, Json}
+import scalaj.http.HttpResponse
 
 class HesehusApi {
 
   def reset(): Unit = {
     println("Resetting SUT...")
-    putAlias(Seq[String]())
+    putAlias(List[String]())
     val indices = getIndices
     println("Removing " + indices.size + " indices...")
     indices.foreach(removeIndex)
@@ -43,28 +44,55 @@ class HesehusApi {
     request.asString.code
   }
 
-  def createIndexing(product: JsObject): Int = {
-    println(Json.prettyPrint(product))
+  def createIndexing(product: JsObject): HttpResponse[String] = {
+    //println(Json.prettyPrint(product))
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
     val response = request.asString
 
-    println(Json.prettyPrint(Json.parse(response.body)))
-    response.code
+    //println(Json.prettyPrint(Json.parse(response.body)))
+    //println(response.body)
+    response
   }
 
-  def getIndexing(index: String): JsObject = {
+  def getIndexing(index: String): HttpResponse[String] = {
     val request = get(s"/api/productsearch/v1/Indexing/$index")
     val response = request.asString
-    Json.parse(response.body).as[JsObject]
+    response
   }
 
-  def putIndexing(product: JsObject): Int = {
+  def putIndexing(product: JsObject): HttpResponse[String] = {
     val request = put("/api/productsearch/v1/Indexing", Json.stringify(product))
-    request.asString.code
+    request.asString
   }
 
-  def removeIndexing(index: String): Int = {
+  def removeIndexing(index: String): HttpResponse[String] = {
     val request = delete(s"/api/productsearch/v1/Indexing/$index")
-    request.asString.code
+    request.asString
   }
+
+  def postProductIndex(index: String, product: JsObject): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/ProductIndex/$index", Json.stringify(product))
+    val response = request.asString
+    response
+  }
+
+  def getProductIndex(index: String, productId: String): HttpResponse[String] = {
+    val request = get(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    request.asString
+  }
+
+  def deleteProductIndex(index: String, productId: String): HttpResponse[String] = {
+    val request = delete(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    request.asString
+  }
+
+  def postSearch(generatedJson: JsObject): List[String] =  {
+    //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
+    //val generatedJson = JsonGenerator.parseJsObject(body)
+    println(Json.prettyPrint(generatedJson))
+    val request = post("/api/productsearch/v1/Search", generatedJson.toString)
+    val response = request.asString
+    Json.parse(response.body).as[List[JsObject]].map(jsObj => jsObj.value("id").as[String])
+  }
+
 }
