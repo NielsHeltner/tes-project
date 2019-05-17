@@ -31,7 +31,6 @@ object HesehusSpecification extends Commands {
     */
   override def newSut(state: State): Sut = {
     val api = new HesehusApi
-    println("New state alias: " + state.alias)
     api.putAlias(state.alias)
     api
   }
@@ -57,7 +56,7 @@ object HesehusSpecification extends Commands {
       indices <- genInitialIndices
       alias <- genInitialAlias(indices)
     } yield {
-      new HesehusApi().putAlias(alias)
+      //new HesehusApi().putAlias(alias)
       Model(indices = indices, alias = alias)
     }
   }
@@ -131,14 +130,15 @@ object HesehusSpecification extends Commands {
       cmds = cmds ++ Seq[Gen[Command]] (
         genCreateIndexing(state)
       )
+      if (state.containsProducts) {
+        println("Yo i got products!")
+        cmds = cmds ++ Seq[Gen[Command]] (
+          genGetIndexing(state)
+          //genPutIndexing(state),
+          //genRemoveIndexing(state)
+        )
+      }
     }
-    /*if (state.products.nonEmpty) {
-      cmds = cmds ++ Seq[Gen[Command]] (
-        genGetIndexing(state),
-        genPutIndexing(state),
-        genRemoveIndexing(state)
-      )
-    }*/
     Gen.oneOf(Gen.const(CreateIndex()), Gen.const(GetIndices()), cmds: _*)
   }
 
