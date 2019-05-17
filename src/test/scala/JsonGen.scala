@@ -53,12 +53,12 @@ object JsonGen {
         priceGroupId <- genSizedString()
         price <- genDouble()
         offerTimeFromInclusive <- genDate()
-        offerTimeFromExclusive <- genDate(offerTimeFromInclusive)
+        offerTimeToExclusive <- genDate(offerTimeFromInclusive)
       } yield Json.obj(
           "priceGroupId" -> priceGroupId,
           "price" -> price,
           "offerTimeFromInclusive" -> offerTimeFromInclusive.toString,
-          "offerTimeFromExclusive" -> offerTimeFromExclusive.toString
+          "offerTimeToExclusive" -> offerTimeToExclusive.toString
         )
       )
     } yield Json.obj("currency" -> currency, "defaultPrice" -> defaultPrice, "salesPrices" -> salesPrices)
