@@ -78,7 +78,7 @@ object HesehusSpecification extends Commands {
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     for {
-      json <- JsonGen.genSizedIndexingJson()
+      json <- JsonGen.genIndexingJson()
     } yield CreateIndexing(json)
   }
 
@@ -88,7 +88,7 @@ object HesehusSpecification extends Commands {
 
   def genPutIndexing(state: State): Gen[PutIndexing] = {
     for {
-      json <- JsonGen.genSizedIndexingJson()
+      json <- JsonGen.genIndexingJson()
       product <- Gen.oneOf(state.indices(state.alias.head).toSeq)
     } yield PutIndexing(json ++ Json.obj("id" -> product.value("id"))) // json.value("id") = product.value("id") ???
   }
@@ -321,7 +321,7 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      println("CreateIndexing")
+      println("CreateIndexing ")
       val success = result.get.code == 200
       if (!success) {
         println("CreateIndexing")
@@ -349,7 +349,9 @@ object HesehusSpecification extends Commands {
       println("GetIndexing")
       if (result.get.code != 200) {
         println("GetIndexing")
-        println(Json.prettyPrint(Json.parse(result.get.body)))
+        println(result.get.code)
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
         false
       }
       else {
@@ -436,6 +438,7 @@ object HesehusSpecification extends Commands {
       val success = result.get.code == 200
       if (!success) {
         println("RemoveIndexing")
+        println(result.get.code)
         println("Alias: " + state.alias + s" size (${state.indices(state.alias.head).size})")
         //println("  " + result.get)
         println(Json.prettyPrint(product))

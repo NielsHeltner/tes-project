@@ -4,46 +4,32 @@ import play.api.libs.json._
 
 object JsonGen {
 
-  def genAttribute: Gen[JsObject] = for {
+  def genAttribute(listSize: Int = 5): Gen[JsObject] = for {
     attributeKey <- genSizedString(max = 50)
     name <- genSizedString(max = 50)
-    values <- Gen.nonEmptyListOf(for {
+    values <- Gen.listOfN(Gen.choose(1, listSize).sample.get, for {
       id <- genSizedString(max = 50)
       value <- genSizedString()
     } yield Json.obj("id" -> id, "value" -> value))
   } yield Json.obj("attributeKey" -> attributeKey, "name" -> name, "values" -> values)
 
-  def genSizedIndexingJson(size: Int = 1001): Gen[JsObject] = {
-    genIndexingJson.retryUntil(json => {
-      val sz = allKeys(json).size
-      println("Sizze: " + sz)
-      sz <= size
-    })
-  }
-
-  def allKeys(json: JsValue): List[String] = json match {
-    case o: JsObject => o.keys.toList ++ o.values.flatMap(allKeys)
-    case arr: JsArray => arr.value.flatMap(allKeys).toList
-    case _ => List()
-  }
-
-  def genIndexingJson: Gen[JsObject] = for {
+  def genIndexingJson(listSize: Int = 10): Gen[JsObject] = for {
     id <- genSizedString(max = 50)
-    alternativeIds <- Gen.nonEmptyListOf(genSizedString(max = 50))
+    alternativeIds <- Gen.listOfN(Gen.choose(1, listSize).sample.get, genSizedString(max = 50))
     productNumber <- genSizedString(max = 50)
     dataAge <- genDate()
     name <- genSizedString(max = 255)
-    categories <- Gen.nonEmptyListOf(for {
+    categories <- Gen.listOfN(Gen.choose(1, listSize).sample.get, for {
       categoryId <- genSizedString(max = 50)
       name <- genSizedString(max = 255)
     } yield Json.obj("categoryId" -> categoryId, "name" -> name)
     )
-    stockKeepingUnits <- Gen.nonEmptyListOf(for {
+    stockKeepingUnits <- Gen.listOfN(Gen.choose(1, listSize / 2).sample.get, for {
       id <- genSizedString(max = 50)
       skuNo <- genSizedString(max = 255)
       ean <- genSizedString(max = 13)
       name <- genSizedString(max = 255)
-      attributes <- Gen.nonEmptyListOf(genAttribute)
+      attributes <- Gen.listOfN(Gen.choose(1, listSize / 2).sample.get, genAttribute(listSize / 2))
       metaData <- genSizedString()
     } yield Json.obj(
         "id" -> id,
@@ -54,7 +40,7 @@ object JsonGen {
         "metaData" -> metaData
       )
     )
-    media <- Gen.nonEmptyListOf(for {
+    media <- Gen.listOfN(Gen.choose(1, listSize).sample.get, for {
       _type <- genInt(3)
       url <- genSizedString()
       metaData <- genSizedString()
@@ -63,7 +49,7 @@ object JsonGen {
     prices <- for {
       currency <- genSizedString(max = 3)
       defaultPrice <- genDouble()
-      salesPrices <- Gen.nonEmptyListOf(for {
+      salesPrices <- Gen.listOfN(Gen.choose(1, listSize).sample.get, for {
         priceGroupId <- genSizedString()
         price <- genDouble()
         offerTimeFromInclusive <- genDate()
@@ -78,8 +64,8 @@ object JsonGen {
     } yield Json.obj("currency" -> currency, "defaultPrice" -> defaultPrice, "salesPrices" -> salesPrices)
     shortDescription <- genSizedString(max = 255)
     longDescription <- genSizedString()
-    alternativeSearchWords <- Gen.nonEmptyListOf(genSizedString())
-    attributes <- Gen.nonEmptyListOf(genAttribute)
+    alternativeSearchWords <- Gen.listOfN(Gen.choose(1, listSize).sample.get, genSizedString())
+    attributes <- Gen.listOfN(Gen.choose(1, listSize).sample.get, genAttribute(listSize))
     metaData <- genSizedString()
     rating <- genDouble(max = 5.0d)
     stock <- genDouble(max = 999999999999.99d)
