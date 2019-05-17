@@ -17,4 +17,7 @@ case class Model(alias: Seq[String] = Seq[String](),
   def indicesWithProducts: Seq[String] = {
     indices.filter(k=> k._2.nonEmpty).keys.toSeq
   }
+
+  def currentIndices: Set[JsObject] = indices(alias.head)
+
 }

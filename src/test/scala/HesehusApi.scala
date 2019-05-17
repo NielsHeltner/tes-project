@@ -86,6 +86,21 @@ class HesehusApi {
     request.asString
   }
 
+  def upsertBulk(index: String, productIds: Seq[JsObject]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/upsert/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
+  def getBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
+  def deleteBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/delete/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
   def postSearch(generatedJson: JsObject): List[String] =  {
     //val body = Json.parse(getClass.getResourceAsStream("searchAllProductsBody.json")).as[JsObject]
     //val generatedJson = JsonGenerator.parseJsObject(body)
