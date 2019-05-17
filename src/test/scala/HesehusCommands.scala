@@ -424,7 +424,7 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
       if (!success) {
-        println("RemoveIndexing")
+        println("Delete product Index")
         println("  " + result.get)
       }
       success
