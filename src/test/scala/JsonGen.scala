@@ -92,6 +92,16 @@ object JsonGen {
       "activeTo" -> activeTo.toString
     )
 
+  def genSearchJson: Gen[JsObject] = for {
+    includeInactive <- genBoolean
+    showOutOfStockProducts <- genBoolean
+    searchTime <- genDate()
+  } yield Json.obj(
+    "includeInActive" -> includeInactive,
+    "showOutOfStockProducts" -> showOutOfStockProducts,
+    "searchTime" -> searchTime.toString
+  )
+
   def genSizedString(min: Int = 1, max: Int = Int.MaxValue): Gen[String] = {
     Gen.identifier.retryUntil(string => string.length >= min && string.length <= max && !string.trim.isEmpty &&
       !string.trim.startsWith(".") && !string.trim.endsWith("."))
