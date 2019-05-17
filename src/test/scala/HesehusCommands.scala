@@ -296,7 +296,7 @@ object HesehusSpecification extends Commands {
       state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head) + product)))
     }
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get.code == 200
@@ -320,7 +320,7 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = state
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       if (result.get.code != 200) {
@@ -371,7 +371,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get.code == 200
@@ -458,7 +458,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get == 200
