@@ -93,7 +93,7 @@ object JsonGen {
     )
 
   def genSizedString(min: Int = 1, max: Int = Int.MaxValue): Gen[String] = {
-    Gen.asciiPrintableStr.retryUntil(string => string.length >= min && string.length <= max && !string.trim.isEmpty &&
+    Gen.identifier.retryUntil(string => string.length >= min && string.length <= max && !string.trim.isEmpty &&
       !string.trim.startsWith(".") && !string.trim.endsWith("."))
   }
 
