@@ -78,7 +78,7 @@ object HesehusSpecification extends Commands {
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = {
     for {
-      json <- JsonGen.genPostIndexingJson
+      json <- JsonGen.genSizedIndexingJson()
     } yield CreateIndexing(json)
   }
 
@@ -88,7 +88,7 @@ object HesehusSpecification extends Commands {
 
   def genPutIndexing(state: State): Gen[PutIndexing] = {
     for {
-      json <- JsonGen.genPostIndexingJson
+      json <- JsonGen.genSizedIndexingJson()
       product <- Gen.oneOf(state.indices(state.alias.head).toSeq)
     } yield PutIndexing(json ++ Json.obj("id" -> product.value("id"))) // json.value("id") = product.value("id") ???
   }
@@ -312,11 +312,12 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
+      println("CreateIndexing")
       val success = result.get.code == 200
       if (!success) {
         println("CreateIndexing")
         //println("  " + result.get)
-        println("Alias: " + state.alias)
+        println("Alias: " + state.alias + s" size (${state.indices(state.alias.head).size})")
         println(Json.prettyPrint(product))
         if (result.get.body.nonEmpty)
           println(Json.prettyPrint(Json.parse(result.get.body)))
@@ -333,9 +334,10 @@ object HesehusSpecification extends Commands {
 
     override def nextState(state: State): State = state
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
+      println("GetIndexing")
       if (result.get.code != 200) {
         println("GetIndexing")
         println(Json.prettyPrint(Json.parse(result.get.body)))
@@ -360,7 +362,7 @@ object HesehusSpecification extends Commands {
           println("GetIndexing")
           println(s"same keys? $succ2")
           product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
-          println("Alias: " + state.alias)
+          println("Alias: " + state.alias + s" size (${state.indices(state.alias.head).size})")
           println("  API:   " + Json.prettyPrint(updatedResult))
           println("  State: " + Json.prettyPrint(product))
         }
@@ -384,13 +386,14 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
+      println("PutIndexing")
       val success = result.get.code == 200
       if (!success) {
         println("PutIndexing")
-        println("Alias: " + state.alias)
+        println("Alias: " + state.alias + s" size (${state.indices(state.alias.head).size})")
         //println("  " + result.get)
         println(Json.prettyPrint(product))
         if (result.get.body.nonEmpty)
@@ -424,7 +427,7 @@ object HesehusSpecification extends Commands {
       val success = result.get.code == 200
       if (!success) {
         println("RemoveIndexing")
-        println("Alias: " + state.alias)
+        println("Alias: " + state.alias + s" size (${state.indices(state.alias.head).size})")
         //println("  " + result.get)
         println(Json.prettyPrint(product))
         if (result.get.body.nonEmpty)
@@ -526,7 +529,7 @@ object HesehusSpecification extends Commands {
       }
     }
 
-    override def preCondition(state: State): Boolean = state.alias.nonEmpty
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
       val success = result.get.code == 200
@@ -558,6 +561,7 @@ object Runner extends Properties("Hesehus") {
   property("HesehusCommands") = {
     testRuns += 1
     println("\nTest run number " + testRuns)
+    new HesehusApi().reset()
     HesehusSpecification.property()
   }
 
