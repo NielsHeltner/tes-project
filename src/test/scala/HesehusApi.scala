@@ -87,19 +87,16 @@ class HesehusApi {
   }
 
   def upsertBulk(index: String, productIds: Seq[JsObject]): HttpResponse[String] = {
-    println("Bulk upsert : " + Json.stringify(Json.toJson(productIds)))
     val request = post(s"/api/productsearch/v1/Bulk/upsert/$index", Json.stringify(Json.toJson(productIds)))
     request.asString
   }
 
   def getBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
-    println("Bulk get : " + Json.stringify(Json.toJson(productIds)))
     val request = post(s"/api/productsearch/v1/Bulk/$index", Json.stringify(Json.toJson(productIds)))
     request.asString
   }
 
   def deleteBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
-    println("Bulk delete : " + Json.stringify(Json.toJson(productIds)))
     val request = post(s"/api/productsearch/v1/Bulk/delete/$index", Json.stringify(Json.toJson(productIds)))
     request.asString
   }
