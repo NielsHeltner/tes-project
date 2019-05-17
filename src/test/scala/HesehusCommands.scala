@@ -133,9 +133,9 @@ object HesehusSpecification extends Commands {
       if (state.aliasContainsProducts) {
         println("Yo i got products!")
         cmds = cmds ++ Seq[Gen[Command]] (
-          genGetIndexing(state)
-          //genPutIndexing(state),
-          //genRemoveIndexing(state)
+          genGetIndexing(state),
+          genPutIndexing(state),
+          genRemoveIndexing(state)
         )
       }
     }
@@ -351,8 +351,7 @@ object HesehusSpecification extends Commands {
           println("  API:   " + Json.prettyPrint(updatedResult))
           println("  State: " + Json.prettyPrint(product))
         }
-        //success
-        true
+        success
       }
     }
   }
@@ -383,8 +382,8 @@ object HesehusSpecification extends Commands {
         println(Json.prettyPrint(product))
         if (result.get.body.nonEmpty)
           println(Json.prettyPrint(Json.parse(result.get.body)))
-        println(s"  State (size ${state.products.size}): ")
-        state.products.map(_.value("id")).foreach(println(_))
+        println(s"  State (size ${state.indices(state.alias.head).size}): ")
+        state.indices(state.alias.head).map(_.value("id")).foreach(println(_))
       }
       success
     }
@@ -408,10 +407,16 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = true
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = result.get == 200
+      println("RemoveIndexing")
+      val success = result.get.code == 200
       if (!success) {
         println("RemoveIndexing")
-        println("  " + result.get)
+        println("Alias: " + state.alias)
+        //println("  " + result.get)
+        println(Json.prettyPrint(product))
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        println("product id " + product.value("id"))
       }
       success
     }
@@ -456,15 +461,10 @@ object HesehusSpecification extends Commands {
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
 
     override def postCondition(state: State, result: Try[Result]): Prop = {
-      val success = result.get.code == 200
+      val success = result.get == 200
       if (!success) {
-        println("RemoveIndexing")
-        println("Alias: " + state.alias)
-        //println("  " + result.get)
-        println(Json.prettyPrint(product))
-        if (result.get.body.nonEmpty)
-          println(Json.prettyPrint(Json.parse(result.get.body)))
-        println("product id " + product.value("id"))
+        println("DeleteProductIndex")
+        println(result.get)
       }
       success
     }
