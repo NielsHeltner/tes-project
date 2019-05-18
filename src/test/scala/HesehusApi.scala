@@ -107,7 +107,7 @@ class HesehusApi {
   def search(generatedJson: JsObject): HttpResponse[String] =  {
     //val body = "{\"includeInActive\" : true, \"showOutOfStockProducts\":true, \"debugInformation\":true}"
     //println(Json.prettyPrint(generatedJson))
-    Thread.sleep(500)
+    Thread.sleep(1000)
     val request = post("/api/productsearch/v1/Search", Json.stringify(generatedJson))
     println("Searching...")
     println("Search result: " + request.asString.body)

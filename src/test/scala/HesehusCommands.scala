@@ -360,12 +360,7 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
     override def nextState(state: State): State = {
-      val toReplace = state.currentIndices.toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
-      if (toReplace.isDefined) {
-        state.copy(indices = state.indices + (state.alias.head -> (state.currentIndices + toReplace.get)))
-      } else {
-        state
-      }
+      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
     }
 
     override def preCondition(state: State): Boolean = state.aliasContainsProducts
