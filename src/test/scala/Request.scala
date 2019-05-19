@@ -1,5 +1,9 @@
+import java.net.ConnectException
+
 import play.api.libs.json.{JsObject, Json}
 import scalaj.http.{Http, HttpRequest}
+
+import scala.util.Try
 
 object Request {
 
@@ -9,9 +13,12 @@ object Request {
   val apiKey: String = config.value("apiKey").as[String]
 
   val accessToken: String = {
-    val request = Http("http://" + host + ":" + port + "/api/v1/Auth").param("apiKey", apiKey).postData("")
-    val response = request.asString
-    val json = Json.parse(response.body).as[JsObject]
+    val request = Http(s"http://$host:$port/api/v1/Auth").param("apiKey", apiKey).postData("")
+    val response = Try(request.asString)
+    if (response.isFailure) {
+      throw new ConnectException("Could not connect to the Hesehus API. Make sure the Docker image is running and you are on SDU/TEK's VPN.")
+    }
+    val json = Json.parse(response.get.body).as[JsObject]
     json.value("accessToken").as[String]
   }
 
