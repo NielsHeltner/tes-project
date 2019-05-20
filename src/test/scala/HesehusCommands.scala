@@ -627,7 +627,6 @@ object HesehusSpecification extends Commands {
     override type Result = HttpResponse[String]
 
     override def run(sut: Sut): Result = {
-      //println("Searching...")
       sut.search(generatedJson)
     }
 

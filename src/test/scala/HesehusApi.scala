@@ -45,15 +45,8 @@ class HesehusApi {
   }
 
   def createIndexing(product: JsObject): HttpResponse[String] = {
-    //println(Json.prettyPrint(product))
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
     val response = request.asString
-    /*println("Created product " + product.value("id"))
-    println("fetched product " + Json.parse(getIndexing(product.value("id").as[String]).body).as[JsObject].value("id").toString())
-    Thread.sleep(2000)
-    search(null)*/
-    //println(Json.prettyPrint(Json.parse(response.body)))
-    //println(response.body)
     response
   }
 
@@ -105,12 +98,8 @@ class HesehusApi {
   }
 
   def search(generatedJson: JsObject): HttpResponse[String] =  {
-    //val body = "{\"includeInActive\" : true, \"showOutOfStockProducts\":true, \"debugInformation\":true}"
-    //println(Json.prettyPrint(generatedJson))
     Thread.sleep(1000)
     val request = post("/api/productsearch/v1/Search", Json.stringify(generatedJson))
-    println("Searching...")
-    println("Search result: " + request.asString.body)
     request.asString
   }
 
