@@ -70,15 +70,35 @@ class HesehusApi {
     request.asString
   }
 
-  def getProductIndex(index: String, productId: String): JsObject = {
-    val request = get(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+  def postProductIndex(index: String, product: JsObject): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/ProductIndex/$index", Json.stringify(product))
     val response = request.asString
-    Json.parse(response.body).as[JsObject]
+    response
   }
 
-  def deleteProductIndex(index: String, productId: String): Int = {
+  def getProductIndex(index: String, productId: String): HttpResponse[String] = {
+    val request = get(s"/api/productsearch/v1/ProductIndex/$index/$productId")
+    request.asString
+  }
+
+  def deleteProductIndex(index: String, productId: String): HttpResponse[String] = {
     val request = delete(s"/api/productsearch/v1/ProductIndex/$index/$productId")
-    request.asString.code
+    request.asString
+  }
+
+  def upsertBulk(index: String, productIds: Seq[JsObject]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/upsert/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
+  def getBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
+  def deleteBulk(index: String, productIds: Seq[String]): HttpResponse[String] = {
+    val request = post(s"/api/productsearch/v1/Bulk/delete/$index", Json.stringify(Json.toJson(productIds)))
+    request.asString
   }
 
   def postSearch(generatedJson: JsObject): List[String] =  {
