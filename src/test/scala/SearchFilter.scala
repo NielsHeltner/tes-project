@@ -23,7 +23,7 @@ class SearchFilter {
     if(!params.value("includeInActive").as[JsBoolean].value) {
       filteredElements = filteredElements.filter(element => {
         val from = new DateTime(element.value("activeFrom").as[JsString].value).getMillis - 1
-        val to = new DateTime(element.value("activeTo").as[JsString].value).getMillis + 1
+        val to = new DateTime(element.value("activeTo").as[JsString].value).getMillis
         val time = new DateTime(params.value("searchTime").as[JsString].value)
 
         time.isAfter(from) && time.isBefore(to)
