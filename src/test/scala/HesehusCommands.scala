@@ -361,7 +361,7 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
+      state.copy(indices = state.indices + (state.alias.head -> (state.currentIndices.filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
     }
 
     override def preCondition(state: State): Boolean = state.aliasContainsProducts
@@ -390,7 +390,7 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.removeIndexing(product.value("id").as[String])
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (state.alias.head -> state.indices(state.alias.head).filterNot(indexProduct => indexProduct.value("id") == product.value("id"))))
+      state.copy(indices = state.indices + (state.alias.head -> state.currentIndices.filterNot(indexProduct => indexProduct.value("id") == product.value("id"))))
     }
 
     override def preCondition(state: State): Boolean = true
