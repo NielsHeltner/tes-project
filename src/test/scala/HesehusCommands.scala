@@ -1,3 +1,4 @@
+import org.joda.time.DateTime
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -146,8 +147,8 @@ object HesehusSpecification extends Commands {
     }
     if (state.alias.nonEmpty) {
       cmds = cmds ++ Seq[Gen[Command]](
-        genCreateIndexing(state)
-        //genSearch(state)
+        genCreateIndexing(state),
+        genSearch(state)
       )
       if (state.aliasContainsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
