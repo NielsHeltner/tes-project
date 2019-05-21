@@ -22,12 +22,12 @@ class SearchFilter {
   def filterIncludeInactive(params: JsObject): Unit = {
     if(!params.value("includeInActive").as[JsBoolean].value) {
       filteredElements = filteredElements.filter(element => {
-        val from = new DateTime(element.value("activeFrom").as[JsString].value).getMillis
-        val to = new DateTime(element.value("activeTo").as[JsString].value).getMillis
+        val from = new DateTime(element.value("activeFrom").as[JsString].value).hourOfDay().roundFloorCopy().getMillis
+        val to = new DateTime(element.value("activeTo").as[JsString].value).hourOfDay().roundFloorCopy().getMillis
         val time = new DateTime(params.value("searchTime").as[JsString].value)
-        val roundedTime = time.hourOfDay().roundHalfCeilingCopy()
+        val roundedTime = time.hourOfDay().roundFloorCopy().getMillis
 
-        roundedTime.isAfter(from) && roundedTime.isBefore(to)
+        roundedTime >= from && roundedTime < to
       })
     }
   }

@@ -667,6 +667,12 @@ object HesehusSpecification extends Commands {
 }
 
 object Runner extends Properties("Hesehus") {
+  val time = new DateTime(2019, 12, 31, 23, 30, 15, 100)
+
+  val t = time.hourOfDay().roundFloorCopy()
+  println(time.toString)
+  println(t.toString)
+
 
   println("Initial reset")
   new HesehusApi().reset()
