@@ -1,23 +1,15 @@
 import play.api.libs.json.JsObject
-
-import scala.collection.immutable
+import scala.collection.immutable.HashMap
 
 case class Model(alias: Seq[String] = Seq[String](),
-                 indices: immutable.HashMap[String, immutable.Set[JsObject]] = new immutable.HashMap[String, immutable.Set[JsObject]]
-                ) {
+                 indices: HashMap[String, Seq[JsObject]] = HashMap[String, Seq[JsObject]]()) {
 
-  def containsProducts: Boolean = {
-    indices.values.flatten.nonEmpty
-  }
+  def containsProducts: Boolean = indices.values.flatten.nonEmpty
 
-  def aliasContainsProducts: Boolean = {
-    indices(alias.head).nonEmpty
-  }
+  def aliasContainsProducts: Boolean = indices(alias.head).nonEmpty
 
-  def indicesWithProducts: Seq[String] = {
-    indices.filter(k=> k._2.nonEmpty).keys.toSeq
-  }
+  def indicesWithProducts: Seq[String] = indices.filter(indexAndObjects => indexAndObjects._2.nonEmpty).keys.toSeq
 
-  def currentIndices: Set[JsObject] = indices(alias.head)
+  def currentIndices: Seq[JsObject] = indices(alias.head)
 
 }
