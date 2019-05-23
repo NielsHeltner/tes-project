@@ -8,7 +8,7 @@ case class Model(alias: Seq[String] = Seq[String](),
 
   def aliasContainsProducts: Boolean = indices(alias.head).nonEmpty
 
-  def indicesWithProducts: Seq[String] = indices.filter(indexAndObjects => indexAndObjects._2.nonEmpty).keys.toSeq
+  def indicesWithProducts: Seq[String] = indices.filter(indexToProducts => indexToProducts._2.nonEmpty).keys.toSeq
 
   def currentIndices: Seq[JsObject] = indices(alias.head)
 

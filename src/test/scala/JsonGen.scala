@@ -4,7 +4,7 @@ import play.api.libs.json._
 
 object JsonGen {
 
-  def genIndexingJson(listSize: Int = 10): Gen[JsObject] = for {
+  def genProductJson(listSize: Int = 10): Gen[JsObject] = for {
     id <- genSizedString(max = 50)
     alternativeIds <- genSizedList(gen = genSizedString(max = 50))
     productNumber <- genSizedString(max = 50)
