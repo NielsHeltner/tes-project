@@ -75,7 +75,7 @@ object HesehusSpecification extends Commands {
   } yield Search(json)
 
   def genCreateIndexing(state: State): Gen[CreateIndexing] = for {
-    json <- JsonGen.genIndexingJson()
+    json <- JsonGen.genProductJson()
   } yield CreateIndexing(json)
 
   def genGetIndexing(state: State): Gen[GetIndexing] = {
@@ -83,7 +83,7 @@ object HesehusSpecification extends Commands {
   }
 
   def genPutIndexing(state: State): Gen[PutIndexing] = for {
-    json <- JsonGen.genIndexingJson()
+    json <- JsonGen.genProductJson()
     product <- Gen.oneOf(state.currentIndices)
   } yield PutIndexing(json ++ Json.obj("id" -> product.value("id")))
 
@@ -93,7 +93,7 @@ object HesehusSpecification extends Commands {
 
   def genPostProductIndex(state: State): Gen[PostProductIndex] = for {
     index <- Gen.oneOf(state.indices.keys.toSeq)
-    product <- JsonGen.genIndexingJson()
+    product <- JsonGen.genProductJson()
   } yield PostProductIndex(index, product)
 
   def genGetProductIndex(state: State): Gen[GetProductIndex] = for {
