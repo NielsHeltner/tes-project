@@ -4,6 +4,7 @@ import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import scalaj.http.HttpResponse
 
 import scala.collection.immutable
+import scala.collection.immutable.HashMap
 import scala.util.Try
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
@@ -45,11 +46,11 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    def genInitialIndices: Gen[immutable.HashMap[String, immutable.Set[JsObject]]] = for {
+    def genInitialIndices: Gen[HashMap[String, Seq[JsObject]]] = for {
       size <- Gen.choose(1, 10)
-    } yield 1.to(size).foldLeft(new immutable.HashMap[String, immutable.Set[JsObject]])((acc, _) => acc + (new HesehusApi().createIndex._1 -> new immutable.HashSet[JsObject]()))
+    } yield 1.to(size).foldLeft(HashMap[String, Seq[JsObject]]())((acc, _) => acc + (new HesehusApi().createIndex._1 -> Seq[JsObject]()))
 
-    def genInitialAlias(indices: immutable.HashMap[String, immutable.Set[JsObject]]): Gen[List[String]] = {
+    def genInitialAlias(indices: HashMap[String, Seq[JsObject]]): Gen[List[String]] = {
       Gen.listOfN(1, Gen.oneOf(indices.keys.toSeq))
     }
 
@@ -198,7 +199,7 @@ object HesehusSpecification extends Commands {
         state
       }
       else {
-        state.copy(indices = state.indices + (response._1 -> new immutable.HashSet[JsObject]()))
+        state.copy(indices = state.indices + (response._1 -> Seq[JsObject]()))
       }
     }
 
@@ -333,7 +334,7 @@ object HesehusSpecification extends Commands {
     }
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (state.alias.head -> (state.currentIndices + product)))
+      state.copy(indices = state.indices + (state.alias.head -> (state.currentIndices :+ product)))
     }
 
     override def preCondition(state: State): Boolean = state.alias.nonEmpty
@@ -407,7 +408,7 @@ object HesehusSpecification extends Commands {
     override def run(sut: Sut): Result = sut.putIndexing(product)
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
+      state.copy(indices = state.indices + (state.alias.head -> (state.indices(state.alias.head).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) :+ product)))
     }
 
     override def preCondition(state: State): Boolean = state.aliasContainsProducts
@@ -438,7 +439,7 @@ object HesehusSpecification extends Commands {
     override def nextState(state: State): State = {
       val toReplace = state.currentIndices.toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
       if (toReplace.isDefined) {
-        state.copy(indices = state.indices + (state.alias.head -> (state.currentIndices - product)))
+        state.copy(indices = state.indices + (state.alias.head -> state.currentIndices.filterNot(_ == product)))
       } else {
         state
       }
@@ -473,7 +474,7 @@ object HesehusSpecification extends Commands {
     }
 
     override def nextState(state: State): State = {
-      state.copy(indices = state.indices + (index -> (state.indices(index).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) + product)))
+      state.copy(indices = state.indices + (index -> (state.indices(index).filterNot(indexProduct => indexProduct.value("id") == product.value("id")) :+ product)))
     }
 
     override def preCondition(state: State): Boolean = true
@@ -546,7 +547,7 @@ object HesehusSpecification extends Commands {
     }
 
     override def nextState(state: State): State = {
-      val toDelete = state.indices(index).toSeq.find(prod => prod.value("id").as[String] == product.value("id").as[String])
+      val toDelete = state.indices(index).find(prod => prod.value("id").as[String] == product.value("id").as[String])
       if (toDelete.isDefined) {
         state.copy(indices = state.indices + (index -> (state.indices(index) - product)))
       } else {
