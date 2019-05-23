@@ -1,10 +1,8 @@
 import org.scalacheck.commands.Commands
 import org.scalacheck.{Gen, Prop, Properties}
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, Json}
 import scalaj.http.HttpResponse
 
-import scala.collection.immutable
-import scala.collection.immutable.HashMap
 import scala.util.Try
 
 //https://github.com/rickynils/scalacheck/blob/master/doc/UserGuide.md#stateful-testing
@@ -46,11 +44,11 @@ object HesehusSpecification extends Commands {
     * it is used.
     */
   override def genInitialState: Gen[State] = {
-    def genInitialIndices: Gen[HashMap[String, Seq[JsObject]]] = for {
+    def genInitialIndices: Gen[Map[String, Seq[JsObject]]] = for {
       size <- Gen.choose(1, 10)
-    } yield 1.to(size).foldLeft(HashMap[String, Seq[JsObject]]())((acc, _) => acc + (new HesehusApi().createIndex._1 -> Seq[JsObject]()))
+    } yield 1.to(size).foldLeft(Map[String, Seq[JsObject]]())((acc, _) => acc + (new HesehusApi().createIndex._1 -> Seq[JsObject]()))
 
-    def genInitialAlias(indices: HashMap[String, Seq[JsObject]]): Gen[List[String]] = {
+    def genInitialAlias(indices: Map[String, Seq[JsObject]]): Gen[List[String]] = {
       Gen.listOfN(1, Gen.oneOf(indices.keys.toSeq))
     }
 
