@@ -648,11 +648,6 @@ object HesehusSpecification extends Commands {
     }
   }
 
-  def sortJs(js: JsValue): JsValue = js match {
-    case JsObject(fields) => JsObject(fields.toSeq.sortBy(_._1).map { case (key, value) => (key, sortJs(value.asInstanceOf[JsValue])) })
-    case JsArray(array) => JsArray(array.map(e => sortJs(e)))
-    case other => other
-  }
 }
 
 object Runner extends Properties("Hesehus") {
