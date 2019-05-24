@@ -162,22 +162,19 @@ object HesehusSpecification extends Commands {
 
   case class CreateIndex() extends Command {
 
-    var response: (String, Int) = ("-1", -1)
+    var indexResponse: Option[String] = None
 
     override type Result = Int
 
     override def run(sut: Sut): Result = {
-      response = new HesehusApi().createIndex
+      val response = sut.createIndex
+      indexResponse = Some(response._1)
       response._2
     }
 
-    override def nextState(state: State): State = {
-      if (response._1 == "-1") { // [[run]] hasn't run yet -- no state update
-        state
-      }
-      else {
-        state.copy(indices = state.indices + (response._1 -> Seq[JsObject]()))
-      }
+    override def nextState(state: State): State = indexResponse match {
+      case Some(index) => state.copy(indices = state.indices + (index -> Seq[JsObject]()))
+      case _ => state // [[run]] hasn't run yet -- no state update
     }
 
     override def preCondition(state: State): Boolean = true
@@ -221,7 +218,7 @@ object HesehusSpecification extends Commands {
 
     override def run(sut: Sut): Result = sut.removeIndex(index)
 
-    override def nextState(state: State): State = state.copy(indices = state.indices - index, alias = state.alias.filterNot(_ == index))
+    override def nextState(state: State): State = state.copy(indices = state.indices.filterNot(_._1 == index), alias = state.alias.filterNot(_ == index))
 
     override def preCondition(state: State): Boolean = state.indices.contains(index)
 
