@@ -14,19 +14,21 @@ class SearchFilter {
     filteredElements.sortBy(js => js.value("id").as[String])
   }
 
-  def filterOutOfStock(params: JsObject): Seq[JsObject] = {
-    filteredElements.filter(element => (element.value("stock").as[JsNumber].value.doubleValue() == 0) && params.value("showOutOfStockProducts").as[JsBoolean].value)
+  def filterOutOfStock(params: JsObject): Unit = {
+    if(!params.value("showOutOfStockProducts").as[JsBoolean].value)
+      filteredElements = filteredElements.filterNot(element => element.value("stock").as[JsNumber].value.doubleValue() == 0)
   }
 
-  def filterIncludeInactive(params: JsObject): Seq[JsObject] = {
-    filteredElements.filter(element => {
-      val from = new DateTime(element.value("activeFrom").as[JsString].value).getMillis
-      val to = new DateTime(element.value("activeTo").as[JsString].value).getMillis
-      val time = new DateTime(params.value("searchTime").as[JsString].value)
+  def filterIncludeInactive(params: JsObject): Unit = {
+    if(!params.value("includeInActive").as[JsBoolean].value) {
+      filteredElements = filteredElements.filter(element => {
+        val from = new DateTime(element.value("activeFrom").as[JsString].value).hourOfDay().roundFloorCopy().getMillis
+        val to = new DateTime(element.value("activeTo").as[JsString].value).hourOfDay().roundFloorCopy().getMillis
+        val time = new DateTime(params.value("searchTime").as[JsString].value)
+        val roundedTime = time.hourOfDay().roundFloorCopy().getMillis
 
-      time.isAfter(from) &&
-      time.isBefore(to) &&
-      element.value("includeInActive").as[JsBoolean].value
-    })
+        roundedTime >= from && roundedTime < to
+      })
+    }
   }
 }

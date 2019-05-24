@@ -97,6 +97,16 @@ object JsonGen {
     list <- Gen.listOfN(listSize, gen)
   } yield list
 
+  def genSearchJson: Gen[JsObject] = for {
+    includeInactive <- genBoolean
+    showOutOfStockProducts <- genBoolean
+    searchTime <- genDate()
+  } yield Json.obj(
+    "includeInActive" -> includeInactive,
+    "showOutOfStockProducts" -> showOutOfStockProducts,
+    "searchTime" -> searchTime.toString
+  )
+
   def genSizedString(min: Int = 1, max: Int = Int.MaxValue): Gen[String] = {
     Gen.identifier.retryUntil(string => string.length >= min && string.length <= max && string.trim.nonEmpty &&
       !string.trim.startsWith(".") && !string.trim.endsWith("."))
