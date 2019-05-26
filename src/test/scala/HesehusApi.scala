@@ -97,6 +97,17 @@ class HesehusApi {
     request.asString
   }
 
+  def getProduct(index: String): HttpResponse[String] = {
+    val request = get(s"/api/productsearch/v1/Product/$index")
+    val response = request.asString
+    response
+  }
+
+  def postProduct(productIds: Seq[String]): HttpResponse[String] = {
+    val request = post("/api/productsearch/v1/Product", Json.stringify(Json.toJson(productIds)))
+    request.asString
+  }
+
   def search(generatedJson: JsObject): HttpResponse[String] =  {
     Thread.sleep(1000)
     val request = post("/api/productsearch/v1/Search", Json.stringify(generatedJson))

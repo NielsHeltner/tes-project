@@ -120,6 +120,14 @@ object HesehusSpecification extends Commands {
     product <- Gen.atLeastOne(state.indices(index))
   } yield DeleteBulk(index, product)
 
+  def genGetProduct(state: State): Gen[GetProduct] = {
+    Gen.oneOf(state.currentIndices).map(GetProduct)
+  }
+
+  def genPostProduct(state: State): Gen[PostProduct] = for {
+    products <- Gen.atLeastOne(state.currentIndices)
+  } yield PostProduct(products)
+
 
   /** A generator that, given the current abstract state, should produce a suitable Command instance.
     */
@@ -153,7 +161,9 @@ object HesehusSpecification extends Commands {
         cmds = cmds ++ Seq[Gen[Command]](
           genGetIndexing(state),
           genPutIndexing(state),
-          genRemoveIndexing(state)
+          genRemoveIndexing(state),
+          genGetProduct(state),
+          genPostProduct(state)
         )
       }
     }
@@ -568,7 +578,7 @@ object HesehusSpecification extends Commands {
         val succ2 = products.map(product => product.value("id").as[String]).sorted == updatedResults.map(product => product.value("id").as[String]).sorted
         val success = succ1 && succ2
         if (!success) {
-          println("GetIndexing")
+          println("Get bulk")
           /*println(s"same keys? $succ2")
           product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
           println("Alias: " + state.alias)
@@ -609,6 +619,99 @@ object HesehusSpecification extends Commands {
     }
   }
 
+  case class GetProduct(product: JsObject) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = sut.getProduct(product.value("id").as[String])
+
+    override def nextState(state: State): State = state
+
+    override def preCondition(state: State): Boolean = state.aliasContainsProducts
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      println("GetProduct")
+      if (result.get.code != 200) {
+        println("GetProduct")
+        println(result.get.code)
+        if (result.get.body.nonEmpty)
+          println(Json.prettyPrint(Json.parse(result.get.body)))
+        false
+      }
+      else {
+        val updatedResult = Json.parse(result.get.body).as[JsObject] - "isInStock"
+        val succ1 = product.value.size == updatedResult.value.size
+        if (!succ1) {
+          println(s"same size: $succ1")
+          println(s"  state size: ${product.value.size}")
+          println(s"  api size: ${updatedResult.value.size}")
+          if (updatedResult.value.size == 2) {
+            updatedResult.value.keys.foreach(println(_))
+          }
+        }
+        //val succ2 = product.value.keys.forall(key => product.value(key) == updatedResult.value(key))
+        val succ2 = product.value("id") == updatedResult.value("id")
+        val success = succ1 && succ2
+        if (!success) {
+          println("GetProduct")
+          println(s"same keys? $succ2")
+          product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
+          println("Alias: " + state.alias + s" size (${state.currentIndices.size})")
+          println("  API:   " + Json.prettyPrint(updatedResult))
+          println("  State: " + Json.prettyPrint(product))
+        }
+        success
+      }
+    }
+  }
+
+  case class PostProduct(products: Seq[JsObject]) extends Command {
+
+    override type Result = HttpResponse[String]
+
+    override def run(sut: Sut): Result = {
+      sut.postProduct(products.map(jsObject => jsObject.value("id").as[String]))
+    }
+
+    override def nextState(state: State): State = state
+
+    override def preCondition(state: State): Boolean = true
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      if (result.get.code != 200) {
+        println("Post product")
+        println(Json.prettyPrint(Json.parse(result.get.body)))
+        false
+      }
+      else {
+        val updatedResults = Json.parse(result.get.body).as[List[JsObject]]
+        updatedResults.foreach(product => product - "isInStock")
+
+        val succ1 = products.size == updatedResults.size
+        if (!succ1) {
+          println(s"same size: $succ1")
+          println(s"  state size: ${products.size}")
+          println(s"  api size: ${updatedResults.size}")
+          if (updatedResults.size == 2) {
+            updatedResults.foreach(println(_))
+          }
+        }
+        //val succ2 = product.value.keys.forall(key => product.value(key) == updatedResult.value(key))
+        val succ2 = products.map(product => product.value("id").as[String]).sorted == updatedResults.map(product => product.value("id").as[String]).sorted
+        val success = succ1 && succ2
+        if (!success) {
+          println("Post product")
+          /*println(s"same keys? $succ2")
+          product.value.keys.filter(key => product.value(key) != updatedResult.value(key)).foreach(key => println(s"  Key: $key\n  API:   ${updatedResult.value(key)}\n  State: ${product.value(key)}"))
+          println("Alias: " + state.alias)
+          println("  API:   " + Json.prettyPrint(updatedResults))
+          println("  State: " + Json.prettyPrint(product))*/
+        }
+        success
+      }
+    }
+  }
+
   case class Search(generatedJson: JsObject) extends Command {
 
     override type Result = HttpResponse[String]
@@ -624,7 +727,7 @@ object HesehusSpecification extends Commands {
     override def postCondition(state: State, result: Try[Result]): Prop = {
       println("Search")
       val searchFilter = new SearchFilter
-      val filteredProducts = searchFilter.filter(generatedJson, state.currentIndices.toSeq)
+      val filteredProducts = searchFilter.filter(generatedJson, state.currentIndices)
       val returnedProducts = Json.parse(result.get.body).as[JsObject].value("productResults").as[List[JsObject]].map(jsObject => jsObject.value("product").as[JsObject])
       val returnedIdsSorted = returnedProducts.map(product => product.value("id").as[String]).sorted
 
