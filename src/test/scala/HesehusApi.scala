@@ -44,6 +44,18 @@ class HesehusApi {
     request.asString.code
   }
 
+  def postAlias(indices: Seq[String]): Int = {
+    val indicesJson = Json.toJson(indices).as[JsArray]
+    val request = post("/api/productsearch/v1/Alias/add", Json.stringify(indicesJson))
+    request.asString.code
+  }
+
+  def removeAlias(indices: Seq[String]): Int = {
+    val indicesJson = Json.toJson(indices).as[JsArray]
+    val request = post("/api/productsearch/v1/Alias/remove", Json.stringify(indicesJson))
+    request.asString.code
+  }
+
   def createIndexing(product: JsObject): HttpResponse[String] = {
     val request = post("/api/productsearch/v1/Indexing", Json.stringify(product))
     val response = request.asString

@@ -64,6 +64,14 @@ object HesehusSpecification extends Commands {
     Gen.listOfN(1, Gen.oneOf(state.indices.keys.toSeq)).map(PutAlias)
   }
 
+  def genPostAlias(state: State): Gen[PostAlias] = {
+    Gen.listOfN(1, Gen.oneOf(state.indices.keys.toSeq)).map(PostAlias)
+  }
+
+  def genRemoveAlias(state: State): Gen[RemoveAlias] = {
+    Gen.listOfN(1, Gen.oneOf(state.alias)).map(RemoveAlias)
+  }
+
   def genRemoveIndex(state: State): Gen[RemoveIndex] = {
     Gen.oneOf(state.indices.keys.toSeq).map(RemoveIndex)
   }
@@ -142,6 +150,11 @@ object HesehusSpecification extends Commands {
         genPutAlias(state),
         genPostProductIndex(state)
       )
+      if (state.alias.isEmpty) {
+        cmds = cmds ++ Seq[Gen[Command]](
+          genPostAlias(state)
+        )
+      }
       if (state.containsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
           genGetProductIndex(state),
@@ -155,7 +168,8 @@ object HesehusSpecification extends Commands {
     if (state.alias.nonEmpty) {
       cmds = cmds ++ Seq[Gen[Command]](
         genCreateIndexing(state),
-        genSearch(state)
+        genSearch(state),
+        genRemoveAlias(state)
       )
       if (state.aliasContainsProducts) {
         cmds = cmds ++ Seq[Gen[Command]](
@@ -277,6 +291,46 @@ object HesehusSpecification extends Commands {
       val success = result.get == 200
       if (!success) {
         println("PutAlias")
+        println("  " + result.get)
+      }
+      success
+    }
+  }
+
+  case class PostAlias(indices: List[String]) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.postAlias(indices)
+
+    override def nextState(state: State): State = state.copy(alias = (state.alias ++ indices).distinct)
+
+    override def preCondition(state: State): Boolean = indices.forall(state.indices.contains)
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("PostAlias")
+        println("  " + result.get)
+      }
+      success
+    }
+  }
+
+  case class RemoveAlias(indices: List[String]) extends Command {
+
+    override type Result = Int
+
+    override def run(sut: Sut): Result = sut.removeAlias(indices)
+
+    override def nextState(state: State): State = state.copy(alias = state.alias.filterNot(indices.contains))
+
+    override def preCondition(state: State): Boolean = indices.forall(state.alias.contains)
+
+    override def postCondition(state: State, result: Try[Result]): Prop = {
+      val success = result.get == 200
+      if (!success) {
+        println("RemoveAlias")
         println("  " + result.get)
       }
       success
